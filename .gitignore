@@ -16,5 +16,8 @@
 door-clicker-web/myenv/
 
 # PlatformIO / embedded
+.platformio-core/
 **/.pio/
 **/.piolibdeps/
+**/.sconsign*.dblite
+**/.pioenvs/
