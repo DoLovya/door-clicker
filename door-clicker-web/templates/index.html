@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Door Clicker Web</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        function sendOpenDoorRequest() {
+            fetch('/api/open/door', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: 'Hello from the button!' })
+            })
+                .then(response => response.json())
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        .fullscreen-button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            background-color: #4CAF50;
+            /* 背景颜色 */
+            border: none;
+            color: white;
+            /* 文字颜色 */
+            font-size: 2em;
+            /* 文字大小 */
+            cursor: pointer;
+        }
+
+        .fullscreen-button:hover {
+            background-color: #45a049;
+            /* 鼠标悬停颜色 */
+        }
+    </style>
+</head>
+
+<body>
+    <button onclick="sendOpenDoorRequest()" class="fullscreen-button">开门</button>
+</body>
+
+</html>

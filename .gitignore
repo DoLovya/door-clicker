@@ -1,0 +1,20 @@
+.DS_Store
+
+# Editor settings
+.idea/
+**/.vscode/
+
+# Python / Flask
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.coverage
+**/.env
+**/.venv/
+**/venv/
+door-clicker-web/myenv/
+
+# PlatformIO / embedded
+**/.pio/
+**/.piolibdeps/
