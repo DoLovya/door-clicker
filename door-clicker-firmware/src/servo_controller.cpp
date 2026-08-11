@@ -7,16 +7,13 @@ namespace
 const char *kLogTagServo = "SERVO";
 } // namespace
 
-ServoController::ServoController(uint8_t pin) : pin_(pin)
-{
-}
+ServoController::ServoController(uint8_t pin) : pin_(pin) {}
 
 void ServoController::begin(int initialAngle)
 {
   servo_.attach(pin_);
   servo_.write(initialAngle);
-  Logger::info(kLogTagServo,
-               String("Initialized, pin=") + pin_ + ", angle=" + initialAngle);
+  Logger::info(kLogTagServo, String("Initialized, pin=") + pin_ + ", angle=" + initialAngle);
 }
 
 void ServoController::execute(const std::vector<DoorCommand> &commands)
@@ -30,10 +27,10 @@ void ServoController::execute(const std::vector<DoorCommand> &commands)
   for (size_t index = 0; index < commands.size(); ++index)
   {
     const DoorCommand &command = commands[index];
-    Logger::info(kLogTagServo,
-                 String("Step ") + (index + 1) + "/" + commands.size() +
-                     ", angle=" + command.angle +
-                     ", duration_ms=" + command.duration);
+    Logger::info(
+        kLogTagServo,
+        String("Step ") + (index + 1) + "/" + commands.size() + ", angle=" + command.angle +
+            ", duration_ms=" + command.duration);
     servo_.write(command.angle);
     delay(command.duration);
   }

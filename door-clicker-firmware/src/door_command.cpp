@@ -6,8 +6,8 @@
 
 namespace
 {
-const char *kLogTagCmd = "CMD";
-}
+  const char *kLogTagCmd = "CMD";
+} // namespace
 
 std::vector<DoorCommand> parseDoorCommands(const byte *payload, unsigned int length)
 {
