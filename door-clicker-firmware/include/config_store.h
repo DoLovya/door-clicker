@@ -25,12 +25,12 @@ public:
     bool save();
 
     const AppConfigData& getConfig() const;
-    DynamicJsonDocument& getJsonDoc();
+    JsonDocument& getJsonDoc();
 
 private:
     ConfigStore();
     AppConfigData _cfg;
-    DynamicJsonDocument _doc;
+    JsonDocument _doc;
 
     // 将 _doc 同步到 _cfg 结构体
     void syncDocToStruct();

@@ -41,11 +41,11 @@ void setup()
   Logger::info("BOOT", "password", String(kApPassword));
   Logger::info("BOOT", "ap_ip", WiFi.softAPIP().toString());
 
+  app.setup();
+
   HttpConfigService::instance().begin(server);
   server.begin();
   Logger::info("BOOT", "HTTP server started on port 80");
-
-  app.setup();
 }
 
 void loop()

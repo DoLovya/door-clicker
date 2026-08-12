@@ -1,4 +1,5 @@
 #include "config_store.h"
+#include "logger.h"
 
 ConfigStore& ConfigStore::instance()
 {
@@ -6,31 +7,52 @@ ConfigStore& ConfigStore::instance()
     return ins;
 }
 
-ConfigStore::ConfigStore() : _doc(1024)
+ConfigStore::ConfigStore()
 {
     memset(&_cfg, 0, sizeof(_cfg));
 }
 
-DynamicJsonDocument& ConfigStore::getJsonDoc()
+JsonDocument& ConfigStore::getJsonDoc()
 {
     return _doc;
 }
 
 void ConfigStore::syncDocToStruct()
 {
-    _cfg.servoPin = _doc["servoPin"] | 0;
+    Logger::info("CFG", "doc size", _doc.size());
 
-    _cfg.wifiSsid = _doc["wifiSsid"].as<const char*>();
-    if (!_cfg.wifiSsid) _cfg.wifiSsid = "";
-    _cfg.wifiPassword = _doc["wifiPassword"].as<const char*>();
-    if (!_cfg.wifiPassword) _cfg.wifiPassword = "";
-    _cfg.mqttServer = _doc["mqttServer"].as<const char*>();
-    if (!_cfg.mqttServer) _cfg.mqttServer = "";
+    // servoPin
+    _cfg.servoPin = _doc["servoPin"] | 0;
+    Logger::info("CFG", "servoPin", _cfg.servoPin);
+
+    // wifiSsid
+    const char* s = _doc["wifiSsid"] | "";
+    _cfg.wifiSsid = s;
+    Logger::info("CFG", "wifiSsid", String(s ? s : "(null)"));
+
+    // wifiPassword
+    s = _doc["wifiPassword"] | "";
+    _cfg.wifiPassword = s;
+    Logger::info("CFG", "wifiPassword length", String(s ? strlen(s) : 0));
+
+    // mqttServer
+    s = _doc["mqttServer"] | "";
+    _cfg.mqttServer = s;
+    Logger::info("CFG", "mqttServer", String(s ? s : "(null)"));
+
+    // mqttPort
     _cfg.mqttPort = _doc["mqttPort"] | 0;
-    _cfg.mqttTopic = _doc["mqttTopic"].as<const char*>();
-    if (!_cfg.mqttTopic) _cfg.mqttTopic = "";
-    _cfg.mqttClientId = _doc["mqttClientId"].as<const char*>();
-    if (!_cfg.mqttClientId) _cfg.mqttClientId = "";
+    Logger::info("CFG", "mqttPort", _cfg.mqttPort);
+
+    // mqttTopic
+    s = _doc["mqttTopic"] | "";
+    _cfg.mqttTopic = s;
+    Logger::info("CFG", "mqttTopic", String(s ? s : "(null)"));
+
+    // mqttClientId
+    s = _doc["mqttClientId"] | "";
+    _cfg.mqttClientId = s;
+    Logger::info("CFG", "mqttClientId", String(s ? s : "(null)"));
 }
 
 bool ConfigStore::load()

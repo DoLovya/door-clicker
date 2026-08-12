@@ -137,28 +137,61 @@ void DoorClickerApp::setupWifi()
     return;
   }
 
-  delay(10);
   Logger::info(kLogTagWifi, "ssid", cfg.wifiSsid);
-  Logger::info(kLogTagWifi, "Starting WiFi connection");
+  Logger::info(kLogTagWifi, "password length", String(strlen(cfg.wifiPassword ? cfg.wifiPassword : "")));
 
+  // Ensure STA mode is ready
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.disconnect();
+  delay(200);
   WiFi.begin(cfg.wifiSsid, cfg.wifiPassword);
+  Logger::info(kLogTagWifi, "Starting WiFi connection...");
 
   unsigned int attempt = 0;
-  const unsigned int kMaxAttempts = 20;
+  const unsigned int kMaxAttempts = 40;
+  wl_status_t lastStatus = WL_IDLE_STATUS;
   while (WiFi.status() != WL_CONNECTED && attempt < kMaxAttempts)
   {
     delay(250);
     ++attempt;
+    wl_status_t st = WiFi.status();
+    if (st != lastStatus)
+    {
+      Logger::info(kLogTagWifi, "attempt", String(attempt) + " status=" + wifiStatusToString(st));
+      lastStatus = st;
+    }
   }
 
   if (WiFi.status() == WL_CONNECTED)
   {
     Logger::info(kLogTagWifi, "Connected to WiFi");
-    Logger::info(kLogTagWifi, "ip", WiFi.localIP().toString());
+    String staIp = WiFi.localIP().toString();
+    Logger::info(kLogTagWifi, "Station IP", staIp);
+    Logger::info(kLogTagWifi, "Visit http://" + staIp + "/config to configure");
+    Logger::info(kLogTagWifi, "AP also available: http://192.168.4.1/config");
   }
   else
   {
-    Logger::error(kLogTagWifi, "WiFi connect failed, AP mode still available");
+    Logger::error(kLogTagWifi, "WiFi connect failed, status=" + wifiStatusToString(WiFi.status()));
+
+    // Dump scan results to help debug
+    Logger::info(kLogTagWifi, "Scanning for networks...");
+    int n = WiFi.scanNetworks();
+    if (n > 0)
+    {
+      for (int i = 0; i < n; ++i)
+      {
+        String scanSsid = WiFi.SSID(i);
+        Logger::info(kLogTagWifi, "scan", String(i) + ":" + scanSsid + " rssi=" + String(WiFi.RSSI(i)));
+      }
+      WiFi.scanDelete();
+    }
+    else
+    {
+      Logger::warn(kLogTagWifi, "No networks found in scan");
+    }
+
+    Logger::info(kLogTagWifi, "AP mode still available at http://192.168.4.1/config");
   }
 }
 
