@@ -82,16 +82,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 </div>
 <form method="POST" action="/config/save">
 <div class="card">
-<div class="card-title">设备</div>
-<div class="field">
-<label>舵机引脚</label>
-)HTML");
-
-    _srv->sendContent("<input name=\"servoPin\" value=\"" + String(cfg.servoPin) + "\" placeholder=\"5\">");
-    _srv->sendContent(R"HTML(
-</div>
-</div>
-<div class="card">
 <div class="card-title">Wi-Fi</div>
 <div class="field">
 <label>SSID</label>
@@ -157,7 +147,6 @@ void HttpConfigService::handleSave()
 {
     auto& doc = ConfigStore::instance().getJsonDoc();
 
-    doc["servoPin"] = _srv->arg("servoPin").toInt();
     doc["wifiSsid"] = _srv->arg("ssid");
     doc["wifiPassword"] = _srv->arg("pwd");
     doc["mqttServer"] = _srv->arg("mqttServer");

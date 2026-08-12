@@ -80,7 +80,6 @@ void DoorClickerApp::setup()
   snprintf(buf, sizeof(buf), "door/%s", mqttClientId_.c_str());
   mqttTopic_ = String(buf);
 
-  Logger::info(kLogTagBoot, "servoPin", cfg.servoPin);
   Logger::info(kLogTagBoot, "wifiSsid", cfg.wifiSsid);
   Logger::info(kLogTagBoot, "mqttServer", cfg.mqttServer);
   Logger::info(kLogTagBoot, "mqttPort", cfg.mqttPort);
@@ -88,7 +87,6 @@ void DoorClickerApp::setup()
   Logger::info(kLogTagBoot, "mqttTopic", mqttTopic_);
 
   Logger::info(kLogTagBoot, "Door Clicker booting");
-  servoController_.begin(cfg.servoPin);
 
   setupWifi();
 
@@ -257,6 +255,18 @@ void DoorClickerApp::handleMqttMessage(char *topic, byte *payload, unsigned int 
   Logger::info(kLogTagCmd, "topic", topic);
   Logger::info(kLogTagCmd, "payload_length", static_cast<int>(length));
 
-  const std::vector<DoorCommand> commands = parseDoorCommands(payload, length);
-  servoController_.execute(commands);
+  const DoorCommandMessage msg = parseDoorCommandMessage(payload, length);
+
+  if (msg.type == MqttCmdType::Init)
+  {
+    servoController_.init(
+        msg.initConfig.pin,
+        msg.initConfig.minAngle,
+        msg.initConfig.maxAngle,
+        msg.initConfig.initialAngle);
+  }
+  else if (msg.type == MqttCmdType::Rotate)
+  {
+    servoController_.execute(msg.commands);
+  }
 }

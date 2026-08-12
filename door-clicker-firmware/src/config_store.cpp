@@ -21,10 +21,6 @@ void ConfigStore::syncDocToStruct()
 {
     Logger::info("CFG", "doc size", _doc.size());
 
-    // servoPin
-    _cfg.servoPin = _doc["servoPin"] | 0;
-    Logger::info("CFG", "servoPin", _cfg.servoPin);
-
     // wifiSsid
     const char* s = _doc["wifiSsid"] | "";
     _cfg.wifiSsid = s;

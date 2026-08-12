@@ -4,8 +4,6 @@
 
 struct AppConfigData
 {
-    int servoPin;
-
     const char* wifiSsid;
     const char* wifiPassword;
 
