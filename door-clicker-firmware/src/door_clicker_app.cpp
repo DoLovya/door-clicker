@@ -74,8 +74,11 @@ void DoorClickerApp::setup()
 
   const auto &cfg = ConfigStore::instance().getConfig();
 
-  mqttClientId_ = String("door_") + String(ESP.getChipId(), HEX);
-  mqttTopic_ = String("door/") + mqttClientId_;
+  char buf[64];
+  snprintf(buf, sizeof(buf), "door_%08X", ESP.getChipId());
+  mqttClientId_ = String(buf);
+  snprintf(buf, sizeof(buf), "door/%s", mqttClientId_.c_str());
+  mqttTopic_ = String(buf);
 
   Logger::info(kLogTagBoot, "servoPin", cfg.servoPin);
   Logger::info(kLogTagBoot, "wifiSsid", cfg.wifiSsid);
@@ -91,6 +94,8 @@ void DoorClickerApp::setup()
 
   if (cfg.mqttServer != nullptr && cfg.mqttServer[0] != '\0')
   {
+    mqttClient_.setClient(wifiClient_);
+    mqttClient_.setBufferSize(256);
     mqttClient_.setServer(cfg.mqttServer, cfg.mqttPort);
     mqttClient_.setCallback(onMqttMessage);
   }
@@ -141,7 +146,9 @@ void DoorClickerApp::setupWifi()
   }
 
   Logger::info(kLogTagWifi, "ssid", cfg.wifiSsid);
-  Logger::info(kLogTagWifi, "password length", String(strlen(cfg.wifiPassword ? cfg.wifiPassword : "")));
+  char pwdLenBuf[16];
+  snprintf(pwdLenBuf, sizeof(pwdLenBuf), "%d", cfg.wifiPassword ? (int)strlen(cfg.wifiPassword) : 0);
+  Logger::info(kLogTagWifi, "password length", pwdLenBuf);
 
   // Ensure STA mode is ready
   WiFi.mode(WIFI_AP_STA);
@@ -160,7 +167,9 @@ void DoorClickerApp::setupWifi()
     wl_status_t st = WiFi.status();
     if (st != lastStatus)
     {
-      Logger::info(kLogTagWifi, "attempt", String(attempt) + " status=" + wifiStatusToString(st));
+      char logBuf[64];
+      snprintf(logBuf, sizeof(logBuf), "attempt %d status=%s", attempt, wifiStatusToString(st).c_str());
+      Logger::info(kLogTagWifi, logBuf);
       lastStatus = st;
     }
   }
@@ -170,12 +179,16 @@ void DoorClickerApp::setupWifi()
     Logger::info(kLogTagWifi, "Connected to WiFi");
     String staIp = WiFi.localIP().toString();
     Logger::info(kLogTagWifi, "Station IP", staIp);
-    Logger::info(kLogTagWifi, "Visit http://" + staIp + "/config to configure");
+    char urlBuf[64];
+    snprintf(urlBuf, sizeof(urlBuf), "Visit http://%s/config to configure", staIp.c_str());
+    Logger::info(kLogTagWifi, urlBuf);
     Logger::info(kLogTagWifi, "AP also available: http://192.168.4.1/config");
   }
   else
   {
-    Logger::error(kLogTagWifi, "WiFi connect failed, status=" + wifiStatusToString(WiFi.status()));
+    char errBuf[64];
+    snprintf(errBuf, sizeof(errBuf), "WiFi connect failed, status=%s", wifiStatusToString(WiFi.status()).c_str());
+    Logger::error(kLogTagWifi, errBuf);
 
     // Dump scan results to help debug
     Logger::info(kLogTagWifi, "Scanning for networks...");
@@ -185,7 +198,9 @@ void DoorClickerApp::setupWifi()
       for (int i = 0; i < n; ++i)
       {
         String scanSsid = WiFi.SSID(i);
-        Logger::info(kLogTagWifi, "scan", String(i) + ":" + scanSsid + " rssi=" + String(WiFi.RSSI(i)));
+        char scanBuf[64];
+        snprintf(scanBuf, sizeof(scanBuf), "scan %d: %s rssi=%d", i, scanSsid.c_str(), WiFi.RSSI(i));
+        Logger::info(kLogTagWifi, scanBuf);
       }
       WiFi.scanDelete();
     }
@@ -208,11 +223,19 @@ bool DoorClickerApp::tryConnectMqtt()
     return false;
   }
 
-  Logger::info(
-      kLogTagMqtt,
-      String("Connecting to broker ") + cfg.mqttServer + ":" + cfg.mqttPort);
+  if (!mqttClient_.connected())
+  {
+    char logBuf[128];
+    snprintf(logBuf, sizeof(logBuf), "Connecting to broker %s:%d",
+             cfg.mqttServer, cfg.mqttPort);
+    Logger::info(kLogTagMqtt, logBuf);
+    Logger::info(kLogTagMqtt, "clientId", mqttClientId_);
+  }
 
-  if (mqttClient_.connect(mqttClientId_.c_str()))
+  const char* user = (cfg.mqttUsername && cfg.mqttUsername[0] != '\0') ? cfg.mqttUsername : nullptr;
+  const char* pass = (cfg.mqttPassword && cfg.mqttPassword[0] != '\0') ? cfg.mqttPassword : nullptr;
+
+  if (mqttClient_.connect(mqttClientId_.c_str(), user, pass))
   {
     Logger::info(kLogTagMqtt, "MQTT connected");
     mqttClient_.subscribe(mqttTopic_.c_str());
@@ -221,10 +244,10 @@ bool DoorClickerApp::tryConnectMqtt()
   }
   else
   {
-    Logger::error(
-        kLogTagMqtt,
-        String("Connect failed, state=") + mqttStateToString(mqttClient_.state()) + " (" +
-            mqttClient_.state() + ")");
+    char logBuf[64];
+    snprintf(logBuf, sizeof(logBuf), "Connect failed, state=%s (%d)",
+             mqttStateToString(mqttClient_.state()).c_str(), mqttClient_.state());
+    Logger::error(kLogTagMqtt, logBuf);
     return false;
   }
 }

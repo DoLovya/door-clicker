@@ -125,12 +125,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     _srv->sendContent(R"HTML(
 </div>
 </div>
+<div class="field">
+<label>用户名</label>
+)HTML");
+    _srv->sendContent("<input name=\"mqttUser\" value=\"" + String(safeStr(cfg.mqttUsername)) + "\" placeholder=\"留空则不使用\">");
+    _srv->sendContent(R"HTML(
+</div>
+<div class="field">
+<label>密码</label>
+<div class="pwd-wrap">
+)HTML");
+    _srv->sendContent("<input name=\"mqttPwd\" id=\"mqttPwd\" type=\"password\" value=\"" + String(safeStr(cfg.mqttPassword)) + "\" placeholder=\"留空则不使用\">");
+    _srv->sendContent(R"HTML(
+<button type="button" class="pwd-eye" onclick="toggleMqttPwd()" title="显示/隐藏">👁</button>
+</div>
+</div>
 </div>
 <button type="submit" class="btn">保存并重启设备</button>
 </form>
 <div class="footer">v1.0 · Door Clicker</div>
 </div>
-<script>function togglePwd(){var i=document.getElementById('pwd');i.type=i.type==='password'?'text':'password'}</script>
+<script>function togglePwd(){var i=document.getElementById('pwd');i.type=i.type==='password'?'text':'password'}function toggleMqttPwd(){var i=document.getElementById('mqttPwd');i.type=i.type==='password'?'text':'password'}</script>
 </body>
 </html>
 )HTML");
@@ -147,6 +162,8 @@ void HttpConfigService::handleSave()
     doc["wifiPassword"] = _srv->arg("pwd");
     doc["mqttServer"] = _srv->arg("mqttServer");
     doc["mqttPort"] = _srv->arg("mqttPort").toInt();
+    doc["mqttUsername"] = _srv->arg("mqttUser");
+    doc["mqttPassword"] = _srv->arg("mqttPwd");
 
     bool ok = ConfigStore::instance().save();
     if (ok)

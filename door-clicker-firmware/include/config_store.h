@@ -11,6 +11,8 @@ struct AppConfigData
 
     const char* mqttServer;
     int mqttPort;
+    const char* mqttUsername;
+    const char* mqttPassword;
 };
 
 class ConfigStore
