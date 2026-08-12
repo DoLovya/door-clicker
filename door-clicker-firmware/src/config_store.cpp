@@ -43,16 +43,6 @@ void ConfigStore::syncDocToStruct()
     // mqttPort
     _cfg.mqttPort = _doc["mqttPort"] | 0;
     Logger::info("CFG", "mqttPort", _cfg.mqttPort);
-
-    // mqttTopic
-    s = _doc["mqttTopic"] | "";
-    _cfg.mqttTopic = s;
-    Logger::info("CFG", "mqttTopic", String(s ? s : "(null)"));
-
-    // mqttClientId
-    s = _doc["mqttClientId"] | "";
-    _cfg.mqttClientId = s;
-    Logger::info("CFG", "mqttClientId", String(s ? s : "(null)"));
 }
 
 bool ConfigStore::load()

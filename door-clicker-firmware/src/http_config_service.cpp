@@ -124,18 +124,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     _srv->sendContent("<input name=\"mqttPort\" value=\"" + String(cfg.mqttPort) + "\" placeholder=\"1883\">");
     _srv->sendContent(R"HTML(
 </div>
-<div class="field">
-<label>主题</label>
-)HTML");
-    _srv->sendContent("<input name=\"mqttTopic\" value=\"" + String(safeStr(cfg.mqttTopic)) + "\" placeholder=\"data\">");
-    _srv->sendContent(R"HTML(
-</div>
-</div>
-<div class="field">
-<label>客户端ID</label>
-)HTML");
-    _srv->sendContent("<input name=\"mqttCliId\" value=\"" + String(safeStr(cfg.mqttClientId)) + "\" placeholder=\"ESP8266Client\">");
-    _srv->sendContent(R"HTML(
 </div>
 </div>
 <button type="submit" class="btn">保存并重启设备</button>
@@ -159,8 +147,6 @@ void HttpConfigService::handleSave()
     doc["wifiPassword"] = _srv->arg("pwd");
     doc["mqttServer"] = _srv->arg("mqttServer");
     doc["mqttPort"] = _srv->arg("mqttPort").toInt();
-    doc["mqttTopic"] = _srv->arg("mqttTopic");
-    doc["mqttClientId"] = _srv->arg("mqttCliId");
 
     bool ok = ConfigStore::instance().save();
     if (ok)

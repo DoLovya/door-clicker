@@ -7,13 +7,25 @@
 | `door/{device_id}` | 订阅 ↓ | 接收所有指令 |
 | `door/{device_id}/status` | 发布 ↑ | 设备上报状态 |
 
-> `{device_id}` 为设备唯一标识，由 `mqttClientId` 决定
+> `{device_id}` 由 ESP8266 Chip ID 自动生成，格式: `door_{HEX}`
+> 例如: `door_3FF12345`
+
+---
+
+## 配置项
+
+| 配置项 | 说明 |
+|--------|------|
+| `mqttServer` | MQTT 服务器地址（必填） |
+| `mqttPort` | MQTT 服务器端口（默认 1883） |
+| `device_id` | 自动生成，基于 Chip ID |
+| `topic` | 自动生成，格式 `door/{device_id}` |
 
 ---
 
 ## 1. 初始化舵机 (init)
 
-**主题**: `door/device001`
+**主题**: `door/3FF12345`
 **Payload**:
 ```json
 {
@@ -33,13 +45,13 @@
 | `maxAngle` | int | 推荐 | 最大角度，默认 180 |
 | `initialAngle` | int | 推荐 | 初始化停留角度，默认 0 |
 
-**触发上报**: 设备向 `door/device001/status` 推送 `{"event":"init", ...}`
+**触发上报**: 设备向 `door/3FF12345/status` 推送 `{"event":"init", ...}`
 
 ---
 
 ## 2. 旋转舵机 (rotate)
 
-**主题**: `door/device001`
+**主题**: `door/3FF12345`
 **Payload**:
 ```json
 {
@@ -65,7 +77,7 @@
 
 ## 3. 状态上报 (status)
 
-**主题**: `door/device001/status`
+**主题**: `door/3FF12345/status`
 **Payload**:
 ```json
 {
@@ -73,7 +85,7 @@
   "pin": 2,
   "angle": 0,
   "initialized": true,
-  "clientId": "ESP8266Client"
+  "clientId": "door_3FF12345"
 }
 ```
 

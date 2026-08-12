@@ -24,6 +24,9 @@ private:
   PubSubClient mqttClient_;
   ServoController servoController_;
 
+  String mqttClientId_;
+  String mqttTopic_;
+
   unsigned long lastMqttAttemptMs_ = 0;
   static constexpr unsigned long kMqttRetryIntervalMs = 5000;
 };

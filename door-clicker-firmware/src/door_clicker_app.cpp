@@ -74,27 +74,30 @@ void DoorClickerApp::setup()
 
   const auto &cfg = ConfigStore::instance().getConfig();
 
+  mqttClientId_ = String("door_") + String(ESP.getChipId(), HEX);
+  mqttTopic_ = String("door/") + mqttClientId_;
+
   Logger::info(kLogTagBoot, "servoPin", cfg.servoPin);
   Logger::info(kLogTagBoot, "wifiSsid", cfg.wifiSsid);
   Logger::info(kLogTagBoot, "mqttServer", cfg.mqttServer);
   Logger::info(kLogTagBoot, "mqttPort", cfg.mqttPort);
-  Logger::info(kLogTagBoot, "mqttClientId", cfg.mqttClientId);
+  Logger::info(kLogTagBoot, "mqttClientId", mqttClientId_);
+  Logger::info(kLogTagBoot, "mqttTopic", mqttTopic_);
 
   Logger::info(kLogTagBoot, "Door Clicker booting");
   servoController_.begin(cfg.servoPin);
 
   setupWifi();
 
-  if (cfg.mqttServer != nullptr && cfg.mqttServer[0] != '\0' &&
-      cfg.mqttClientId != nullptr && cfg.mqttClientId[0] != '\0')
+  if (cfg.mqttServer != nullptr && cfg.mqttServer[0] != '\0')
   {
     mqttClient_.setServer(cfg.mqttServer, cfg.mqttPort);
     mqttClient_.setCallback(onMqttMessage);
   }
   else
   {
-    Logger::warn(kLogTagMqtt, "MQTT config incomplete, skip MQTT init");
-    Logger::warn(kLogTagMqtt, "Set mqttServer and mqttClientId via /config");
+    Logger::warn(kLogTagMqtt, "MQTT server not configured, skip MQTT init");
+    Logger::warn(kLogTagMqtt, "Set mqttServer via /config");
   }
 }
 
@@ -199,10 +202,9 @@ bool DoorClickerApp::tryConnectMqtt()
 {
   const auto &cfg = ConfigStore::instance().getConfig();
 
-  if (cfg.mqttServer == nullptr || cfg.mqttServer[0] == '\0' ||
-      cfg.mqttClientId == nullptr || cfg.mqttClientId[0] == '\0')
+  if (cfg.mqttServer == nullptr || cfg.mqttServer[0] == '\0')
   {
-    Logger::warn(kLogTagMqtt, "MQTT not configured, skip connection");
+    Logger::warn(kLogTagMqtt, "MQTT server not configured, skip connection");
     return false;
   }
 
@@ -210,11 +212,11 @@ bool DoorClickerApp::tryConnectMqtt()
       kLogTagMqtt,
       String("Connecting to broker ") + cfg.mqttServer + ":" + cfg.mqttPort);
 
-  if (mqttClient_.connect(cfg.mqttClientId))
+  if (mqttClient_.connect(mqttClientId_.c_str()))
   {
     Logger::info(kLogTagMqtt, "MQTT connected");
-    mqttClient_.subscribe(cfg.mqttTopic);
-    Logger::info(kLogTagMqtt, "topic", cfg.mqttTopic);
+    mqttClient_.subscribe(mqttTopic_.c_str());
+    Logger::info(kLogTagMqtt, "subscribed topic", mqttTopic_);
     return true;
   }
   else
