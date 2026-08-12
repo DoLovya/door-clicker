@@ -10,12 +10,12 @@
 class ServoController
 {
 public:
-  explicit ServoController(uint8_t pin);
+  ServoController() = default;
 
-  void begin(int initialAngle = 0);
+  void begin(uint8_t pin, int initialAngle = 0);
   void execute(const std::vector<DoorCommand> &commands);
 
 private:
-  uint8_t pin_;
+  uint8_t pin_ = 0;
   Servo servo_;
 };

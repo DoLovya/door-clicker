@@ -7,10 +7,9 @@ namespace
 const char *kLogTagServo = "SERVO";
 } // namespace
 
-ServoController::ServoController(uint8_t pin) : pin_(pin) {}
-
-void ServoController::begin(int initialAngle)
+void ServoController::begin(uint8_t pin, int initialAngle)
 {
+  pin_ = pin;
   servo_.attach(pin_);
   servo_.write(initialAngle);
   Logger::info(kLogTagServo, String("Initialized, pin=") + pin_ + ", angle=" + initialAngle);

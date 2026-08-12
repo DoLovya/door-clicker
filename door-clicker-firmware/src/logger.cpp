@@ -20,11 +20,6 @@ namespace Logger
     }
   } // namespace
 
-  void begin(long baudRate)
-  {
-    Serial.begin(baudRate);
-  }
-
   void log(Level level, const char *tag, const String &message)
   {
     Serial.printf("[%08lu][%s][%s] %s\n", millis(), levelToString(level), tag, message.c_str());
@@ -43,6 +38,11 @@ namespace Logger
   void info(const char *tag, const char *key, const String &value)
   {
     log(Level::Info, tag, String(key) + "=" + value);
+  }
+
+  void info(const char *tag, const char *key, const char *value)
+  {
+    log(Level::Info, tag, String(key) + "=" + String(value ? value : "(null)"));
   }
 
   void info(const char *tag, const char *key, int value)
@@ -65,6 +65,11 @@ namespace Logger
     log(Level::Warn, tag, String(key) + "=" + value);
   }
 
+  void warn(const char *tag, const char *key, const char *value)
+  {
+    log(Level::Warn, tag, String(key) + "=" + String(value ? value : "(null)"));
+  }
+
   void warn(const char *tag, const char *key, int value)
   {
     log(Level::Warn, tag, String(key) + "=" + String(value));
@@ -83,6 +88,11 @@ namespace Logger
   void error(const char *tag, const char *key, const String &value)
   {
     log(Level::Error, tag, String(key) + "=" + value);
+  }
+
+  void error(const char *tag, const char *key, const char *value)
+  {
+    log(Level::Error, tag, String(key) + "=" + String(value ? value : "(null)"));
   }
 
   void error(const char *tag, const char *key, int value)

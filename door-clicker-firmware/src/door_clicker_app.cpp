@@ -1,6 +1,6 @@
 #include "door_clicker_app.h"
 
-#include "app_config.h"
+#include "config_store.h"
 #include "door_command.h"
 #include "logger.h"
 
@@ -68,33 +68,54 @@ namespace
   }
 } // namespace
 
-DoorClickerApp::DoorClickerApp()
-    : mqttClient_(wifiClient_), servoController_(AppConfig::kServoPin) {}
-
 void DoorClickerApp::setup()
 {
   instance_ = this;
 
-  pinMode(AppConfig::kLedPin, OUTPUT);
-  Logger::begin(AppConfig::kSerialBaudRate);
+  const auto &cfg = ConfigStore::instance().getConfig();
+
+  Logger::info(kLogTagBoot, "servoPin", cfg.servoPin);
+  Logger::info(kLogTagBoot, "wifiSsid", cfg.wifiSsid);
+  Logger::info(kLogTagBoot, "mqttServer", cfg.mqttServer);
+  Logger::info(kLogTagBoot, "mqttPort", cfg.mqttPort);
+  Logger::info(kLogTagBoot, "mqttClientId", cfg.mqttClientId);
+
   Logger::info(kLogTagBoot, "Door Clicker booting");
-  Logger::info(kLogTagBoot, "serial_baud_rate", AppConfig::kSerialBaudRate);
-  servoController_.begin();
+  servoController_.begin(cfg.servoPin);
 
   setupWifi();
 
-  mqttClient_.setServer(AppConfig::kMqttServer, AppConfig::kMqttPort);
-  mqttClient_.setCallback(onMqttMessage);
+  if (cfg.mqttServer != nullptr && cfg.mqttServer[0] != '\0' &&
+      cfg.mqttClientId != nullptr && cfg.mqttClientId[0] != '\0')
+  {
+    mqttClient_.setServer(cfg.mqttServer, cfg.mqttPort);
+    mqttClient_.setCallback(onMqttMessage);
+  }
+  else
+  {
+    Logger::warn(kLogTagMqtt, "MQTT config incomplete, skip MQTT init");
+    Logger::warn(kLogTagMqtt, "Set mqttServer and mqttClientId via /config");
+  }
 }
 
 void DoorClickerApp::loop()
 {
-  if (!mqttClient_.connected())
+  if (WiFi.status() == WL_CONNECTED)
   {
-    reconnectMqtt();
+    if (!mqttClient_.connected())
+    {
+      unsigned long now = millis();
+      if (now - lastMqttAttemptMs_ >= kMqttRetryIntervalMs)
+      {
+        lastMqttAttemptMs_ = now;
+        tryConnectMqtt();
+      }
+    }
+    else
+    {
+      mqttClient_.loop();
+    }
   }
-
-  mqttClient_.loop();
 }
 
 void DoorClickerApp::onMqttMessage(char *topic, byte *payload, unsigned int length)
@@ -107,50 +128,69 @@ void DoorClickerApp::onMqttMessage(char *topic, byte *payload, unsigned int leng
 
 void DoorClickerApp::setupWifi()
 {
-  delay(10);
-  Logger::info(kLogTagWifi, "ssid", AppConfig::kWifiSsid);
-  Logger::info(kLogTagWifi, "Starting WiFi connection");
+  const auto &cfg = ConfigStore::instance().getConfig();
 
-  WiFi.begin(AppConfig::kWifiSsid, AppConfig::kWifiPassword);
-
-  unsigned int attempt = 0;
-  while (WiFi.status() != WL_CONNECTED)
+  if (cfg.wifiSsid == nullptr || cfg.wifiSsid[0] == '\0')
   {
-    delay(500);
-    ++attempt;
-    Logger::warn(
-        kLogTagWifi,
-        String("Waiting for connection, attempt=") + attempt + ", status=" +
-            wifiStatusToString(WiFi.status()) + " (" + WiFi.status() + ")");
+    Logger::warn(kLogTagWifi, "No WiFi SSID configured, AP mode only");
+    Logger::info(kLogTagWifi, "Connect to AP and visit /config to set WiFi");
+    return;
   }
 
-  Logger::info(kLogTagWifi, "Connected to WiFi");
-  Logger::info(kLogTagWifi, "ip", WiFi.localIP().toString());
+  delay(10);
+  Logger::info(kLogTagWifi, "ssid", cfg.wifiSsid);
+  Logger::info(kLogTagWifi, "Starting WiFi connection");
+
+  WiFi.begin(cfg.wifiSsid, cfg.wifiPassword);
+
+  unsigned int attempt = 0;
+  const unsigned int kMaxAttempts = 20;
+  while (WiFi.status() != WL_CONNECTED && attempt < kMaxAttempts)
+  {
+    delay(250);
+    ++attempt;
+  }
+
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Logger::info(kLogTagWifi, "Connected to WiFi");
+    Logger::info(kLogTagWifi, "ip", WiFi.localIP().toString());
+  }
+  else
+  {
+    Logger::error(kLogTagWifi, "WiFi connect failed, AP mode still available");
+  }
 }
 
-void DoorClickerApp::reconnectMqtt()
+bool DoorClickerApp::tryConnectMqtt()
 {
-  while (!mqttClient_.connected())
-  {
-    Logger::info(
-        kLogTagMqtt,
-        String("Connecting to broker ") + AppConfig::kMqttServer + ":" + AppConfig::kMqttPort);
+  const auto &cfg = ConfigStore::instance().getConfig();
 
-    if (mqttClient_.connect(AppConfig::kMqttClientId))
-    {
-      Logger::info(kLogTagMqtt, "MQTT connected");
-      mqttClient_.subscribe(AppConfig::kMqttTopic);
-      Logger::info(kLogTagMqtt, "topic", AppConfig::kMqttTopic);
-    }
-    else
-    {
-      Logger::error(
-          kLogTagMqtt,
-          String("Connect failed, state=") + mqttStateToString(mqttClient_.state()) + " (" +
-              mqttClient_.state() + ")");
-      Logger::warn(kLogTagMqtt, "Retry in 5 seconds");
-      delay(5000);
-    }
+  if (cfg.mqttServer == nullptr || cfg.mqttServer[0] == '\0' ||
+      cfg.mqttClientId == nullptr || cfg.mqttClientId[0] == '\0')
+  {
+    Logger::warn(kLogTagMqtt, "MQTT not configured, skip connection");
+    return false;
+  }
+
+  Logger::info(
+      kLogTagMqtt,
+      String("Connecting to broker ") + cfg.mqttServer + ":" + cfg.mqttPort);
+
+  if (mqttClient_.connect(cfg.mqttClientId))
+  {
+    Logger::info(kLogTagMqtt, "MQTT connected");
+    mqttClient_.subscribe(cfg.mqttTopic);
+    Logger::info(kLogTagMqtt, "topic", cfg.mqttTopic);
+    return true;
+  }
+  else
+  {
+    Logger::error(
+        kLogTagMqtt,
+        String("Connect failed, state=") + mqttStateToString(mqttClient_.state()) + " (" +
+            mqttClient_.state() + ")");
+    return false;
   }
 }
 
