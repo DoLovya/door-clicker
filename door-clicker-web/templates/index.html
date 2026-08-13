@@ -5,54 +5,430 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Door Clicker Web</title>
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
-    <script>
-        function sendOpenDoorRequest() {
-            fetch('/api/open/door', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: 'Hello from the button!' })
-            })
-                .then(response => response.json())
-                .catch(error => console.error('Error:', error));
-        }
-    </script>
     <style>
-        body,
-        html {
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            height: 100%;
-            width: 100%;
         }
 
-        .fullscreen-button {
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: 100vw;
-            background-color: #4CAF50;
-            /* 背景颜色 */
-            border: none;
-            color: white;
-            /* 文字颜色 */
-            font-size: 2em;
-            /* 文字大小 */
-            cursor: pointer;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        .fullscreen-button:hover {
-            background-color: #45a049;
-            /* 鼠标悬停颜色 */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #bbb;
+            transition: background 0.3s ease;
+        }
+
+        .status-dot.connected {
+            background: #4CAF50;
+            box-shadow: 0 0 6px rgba(76, 175, 80, 0.5);
+        }
+
+        .status-dot.connecting {
+            background: #FFC107;
+            box-shadow: 0 0 6px rgba(255, 193, 7, 0.5);
+            animation: pulse 1.2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: #bbb;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            background: #fafafa;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="password"]:focus {
+            border-color: #1677ff;
+            background: #fff;
+            box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            gap: 4px;
+        }
+
+        .btn-primary {
+            background: #1677ff;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #4096ff;
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: #1677ff;
+            border: 1px solid #1677ff;
+        }
+
+        .btn-secondary:hover {
+            background: #e6f4ff;
+        }
+
+        .btn-danger {
+            background: #fff;
+            color: #ff4d4f;
+            border: 1px solid #ff4d4f;
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+
+        .btn-danger:hover {
+            background: #fff1f0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .door-button {
+            display: block;
+            width: 100%;
+            padding: 28px;
+            font-size: 20px;
+            font-weight: 600;
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+            letter-spacing: 4px;
+        }
+
+        .door-button:hover {
+            background: #45a049;
+        }
+
+        .door-button:active {
+            transform: scale(0.98);
+        }
+
+        .toast {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            background: #52c41a;
+        }
+
+        .toast.error {
+            background: #ff4d4f;
+        }
+
+        .toast.info {
+            background: #1677ff;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .card {
+                padding: 16px;
+                border-radius: 10px;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn-group .btn {
+                width: 100%;
+            }
+
+            .door-button {
+                padding: 24px;
+                font-size: 18px;
+            }
         }
     </style>
 </head>
 
 <body>
-    <button onclick="sendOpenDoorRequest()" class="fullscreen-button">开门</button>
+    <div class="container">
+        <!-- MQTT 连接配置 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">MQTT 连接配置</div>
+                <div class="status-indicator">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">未连接</span>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="broker">服务器地址</label>
+                    <input type="text" id="broker" placeholder="例如: broker.example.com">
+                </div>
+                <div class="form-group">
+                    <label for="port">端口</label>
+                    <input type="number" id="port" placeholder="例如: 1883" min="1" max="65535">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" placeholder="选填">
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" placeholder="选填">
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnSaveConfig">保存配置</button>
+                <button class="btn btn-secondary" id="btnTestConnection">测试连接</button>
+            </div>
+        </div>
+
+        <!-- 开门控制 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">开门控制</div>
+            </div>
+            <button class="door-button" id="btnOpenDoor">开 门</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        function showToast(message, type) {
+            var toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show ' + (type || 'info');
+            setTimeout(function () {
+                toast.className = 'toast ' + (type || 'info');
+            }, 2500);
+        }
+
+        function setStatus(status) {
+            var dot = document.getElementById('statusDot');
+            var text = document.getElementById('statusText');
+            dot.className = 'status-dot ' + status;
+            var statusMap = {
+                connected: '已连接',
+                connecting: '连接中',
+                disconnected: '未连接'
+            };
+            text.textContent = statusMap[status] || '未知';
+        }
+
+        function loadConfig() {
+            fetch('/api/config')
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    document.getElementById('broker').value = data.mqttServer || '';
+                    document.getElementById('port').value = data.mqttPort || 1883;
+                    document.getElementById('username').value = data.mqttUsername || '';
+                    document.getElementById('password').value = data.mqttPassword || '';
+                })
+                .catch(function () {
+                    showToast('加载配置失败', 'error');
+                });
+        }
+
+        function saveConfig() {
+            var config = {
+                mqttServer: document.getElementById('broker').value.trim(),
+                mqttPort: parseInt(document.getElementById('port').value) || 1883,
+                mqttUsername: document.getElementById('username').value.trim(),
+                mqttPassword: document.getElementById('password').value.trim()
+            };
+
+            fetch('/api/config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+                .then(function (res) { return res.json(); })
+                .then(function () {
+                    showToast('配置保存成功', 'success');
+                })
+                .catch(function () {
+                    showToast('配置保存失败', 'error');
+                });
+        }
+
+        function testConnection() {
+            setStatus('connecting');
+            showToast('正在测试连接...', 'info');
+
+            fetch('/api/mqtt/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        setStatus('connected');
+                        showToast('连接成功', 'success');
+                    } else {
+                        setStatus('disconnected');
+                        showToast('连接失败: ' + (data.message || '未知错误'), 'error');
+                    }
+                })
+                .catch(function () {
+                    setStatus('disconnected');
+                    showToast('连接测试失败', 'error');
+                });
+        }
+
+        function loadStatus() {
+            fetch('/api/mqtt/status')
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    setStatus(data.connected ? 'connected' : 'disconnected');
+                })
+                .catch(function () {
+                    setStatus('disconnected');
+                });
+        }
+
+        function openDoor() {
+            fetch('/api/open/door', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    showToast('开门指令已发送', 'success');
+                })
+                .catch(function () {
+                    showToast('开门指令发送失败', 'error');
+                });
+        }
+
+        document.getElementById('btnSaveConfig').onclick = saveConfig;
+        document.getElementById('btnTestConnection').onclick = testConnection;
+        document.getElementById('btnOpenDoor').onclick = openDoor;
+
+        loadConfig();
+        loadStatus();
+    </script>
 </body>
 
 </html>
