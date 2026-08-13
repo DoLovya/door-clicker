@@ -200,6 +200,129 @@
             transform: scale(0.98);
         }
 
+        .log-toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+
+        .log-filter {
+            padding: 6px 10px;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            font-size: 13px;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .log-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #f0f0f0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .log-empty {
+            text-align: center;
+            padding: 32px;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            display: flex;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: #999;
+            font-family: "SF Mono", "Menlo", "Consolas", monospace;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .log-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .log-badge.info {
+            background: #e6f4ff;
+            color: #1677ff;
+        }
+
+        .log-badge.send {
+            background: #e8f8e8;
+            color: #52c41a;
+        }
+
+        .log-badge.receive {
+            background: #fff7e6;
+            color: #fa8c16;
+        }
+
+        .log-badge.error {
+            background: #fff1f0;
+            color: #ff4d4f;
+        }
+
+        .log-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .log-message {
+            color: #333;
+            word-break: break-all;
+        }
+
+        .log-detail {
+            margin-top: 4px;
+            font-family: "SF Mono", "Menlo", "Consolas", monospace;
+            font-size: 12px;
+            color: #666;
+            background: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #f0f0f0;
+            cursor: pointer;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .log-detail.collapsed {
+            max-height: 0;
+            padding: 0 8px;
+            margin: 0;
+            overflow: hidden;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .log-summary {
+            color: #666;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .log-summary:hover {
+            color: #1677ff;
+        }
+
         .toast {
             position: fixed;
             top: 24px;
@@ -298,6 +421,11 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label for="doorTopic">开门 Topic</label>
+                <input type="text" id="doorTopic" placeholder="例如: door/00094E53">
+            </div>
+
             <div class="btn-group">
                 <button class="btn btn-primary" id="btnSaveConfig">保存配置</button>
                 <button class="btn btn-secondary" id="btnTestConnection">测试连接</button>
@@ -310,6 +438,31 @@
                 <div class="card-title">开门控制</div>
             </div>
             <button class="door-button" id="btnOpenDoor">开 门</button>
+        </div>
+
+        <!-- 日志 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">通信日志</div>
+                <div class="status-indicator">
+                    <button class="btn btn-secondary" id="btnRefreshLogs" style="padding: 4px 10px; font-size: 12px;">刷新</button>
+                    <button class="btn btn-danger" id="btnClearLogs" style="padding: 4px 10px; font-size: 12px;">清空</button>
+                </div>
+            </div>
+
+            <div class="log-toolbar">
+                <select class="log-filter" id="logFilter">
+                    <option value="">全部</option>
+                    <option value="send">发送</option>
+                    <option value="receive">接收</option>
+                    <option value="info">信息</option>
+                    <option value="error">错误</option>
+                </select>
+            </div>
+
+            <div class="log-list" id="logList">
+                <div class="log-empty">加载中...</div>
+            </div>
         </div>
     </div>
 
@@ -345,6 +498,7 @@
                     document.getElementById('port').value = data.mqttPort || 1883;
                     document.getElementById('username').value = data.mqttUsername || '';
                     document.getElementById('password').value = data.mqttPassword || '';
+                    document.getElementById('doorTopic').value = data.doorTopic || '';
                 })
                 .catch(function () {
                     showToast('加载配置失败', 'error');
@@ -356,7 +510,8 @@
                 mqttServer: document.getElementById('broker').value.trim(),
                 mqttPort: parseInt(document.getElementById('port').value) || 1883,
                 mqttUsername: document.getElementById('username').value.trim(),
-                mqttPassword: document.getElementById('password').value.trim()
+                mqttPassword: document.getElementById('password').value.trim(),
+                doorTopic: document.getElementById('doorTopic').value.trim()
             };
 
             fetch('/api/config', {
@@ -422,12 +577,102 @@
                 });
         }
 
+        function loadLogs() {
+            var filter = document.getElementById('logFilter').value;
+            var url = '/api/logs';
+            if (filter) {
+                url += '?type=' + encodeURIComponent(filter);
+            }
+
+            fetch(url)
+                .then(function (res) { return res.json(); })
+                .then(function (logs) {
+                    var list = document.getElementById('logList');
+                    list.innerHTML = '';
+
+                    if (!logs || logs.length === 0) {
+                        list.innerHTML = '<div class="log-empty">暂无日志</div>';
+                        return;
+                    }
+
+                    var reversed = logs.slice().reverse();
+                    reversed.forEach(function (log) {
+                        var entry = document.createElement('div');
+                        entry.className = 'log-entry';
+
+                        var time = document.createElement('span');
+                        time.className = 'log-time';
+                        time.textContent = log.timestamp || '';
+
+                        var badge = document.createElement('span');
+                        badge.className = 'log-badge ' + (log.type || 'info');
+                        var typeMap = { send: '发送', receive: '接收', info: '信息', error: '错误' };
+                        badge.textContent = typeMap[log.type] || log.type;
+
+                        var content = document.createElement('div');
+                        content.className = 'log-content';
+
+                        var message = document.createElement('div');
+                        message.className = 'log-message';
+                        message.textContent = log.message || '';
+                        content.appendChild(message);
+
+                        if (log.payload) {
+                            var detail = document.createElement('div');
+                            detail.className = 'log-detail collapsed';
+                            detail.textContent = (log.topic ? 'Topic: ' + log.topic + '\n' : '') + 'Payload: ' + log.payload;
+                            var summary = document.createElement('div');
+                            summary.className = 'log-summary';
+                            summary.textContent = '点击查看详情';
+                            summary.onclick = function () {
+                                detail.classList.toggle('collapsed');
+                                summary.textContent = detail.classList.contains('collapsed') ? '点击查看详情' : '收起详情';
+                            };
+                            content.appendChild(summary);
+                            content.appendChild(detail);
+                        }
+
+                        entry.appendChild(time);
+                        entry.appendChild(badge);
+                        entry.appendChild(content);
+                        list.appendChild(entry);
+                    });
+                })
+                .catch(function () {
+                    var list = document.getElementById('logList');
+                    list.innerHTML = '<div class="log-empty">加载日志失败</div>';
+                });
+        }
+
+        function clearLogs() {
+            if (!confirm('确定要清空所有日志吗？')) {
+                return;
+            }
+            fetch('/api/logs', {
+                method: 'DELETE'
+            })
+                .then(function (res) { return res.json(); })
+                .then(function () {
+                    showToast('日志已清空', 'success');
+                    loadLogs();
+                })
+                .catch(function () {
+                    showToast('清空日志失败', 'error');
+                });
+        }
+
         document.getElementById('btnSaveConfig').onclick = saveConfig;
         document.getElementById('btnTestConnection').onclick = testConnection;
         document.getElementById('btnOpenDoor').onclick = openDoor;
+        document.getElementById('btnRefreshLogs').onclick = loadLogs;
+        document.getElementById('btnClearLogs').onclick = clearLogs;
+        document.getElementById('logFilter').onchange = loadLogs;
 
         loadConfig();
         loadStatus();
+        loadLogs();
+
+        setInterval(loadLogs, 5000);
     </script>
 </body>
 

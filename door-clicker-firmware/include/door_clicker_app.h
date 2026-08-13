@@ -11,6 +11,9 @@ public:
   void setup();
   void loop();
 
+  static DoorClickerApp* instance();
+  ServoController& getServoController() { return servoController_; }
+
 private:
   static void onMqttMessage(char *topic, byte *payload, unsigned int length);
 

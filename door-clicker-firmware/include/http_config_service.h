@@ -12,5 +12,6 @@ private:
     static void handleRoot();
     static void handleIndex();
     static void handleSave();
+    static void handleServoTest();
     static ESP8266WebServer* _srv;
 };

@@ -13,6 +13,7 @@ class ConfigManager:
         "mqttPort": 1883,
         "mqttUsername": "",
         "mqttPassword": "",
+        "doorTopic": "door/00094E53",
         "topics": [],
     }
 

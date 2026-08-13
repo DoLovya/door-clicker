@@ -4,6 +4,7 @@ import threading
 import paho.mqtt.client as mqtt
 
 from config_manager import ConfigManager
+from log_manager import LogManager
 
 try:
     _CALLBACK_API_VERSION = mqtt.CallbackAPIVersion.VERSION2
@@ -28,6 +29,7 @@ class MqttClientManager:
         self._connected = False
         self._subscribed_topics = set()
         self._config_manager = ConfigManager()
+        self._log_manager = LogManager()
         self._on_message_callback = None
         self._client_id = f"door_clicker_{threading.get_ident()}"
 
@@ -47,15 +49,20 @@ class MqttClientManager:
 
         if reason_code == 0:
             self._connected = True
+            self._log_manager.log_info("MQTT 连接成功")
             for topic in self._subscribed_topics:
                 client.subscribe(topic)
         else:
             self._connected = False
+            self._log_manager.log_error(f"MQTT 连接失败 (code: {reason_code})")
 
     def _on_disconnect(self, client, userdata, *args):
         self._connected = False
+        self._log_manager.log_info("MQTT 连接已断开")
 
     def _on_message(self, client, userdata, msg):
+        payload = msg.payload.decode("utf-8", errors="replace")
+        self._log_manager.log_receive(msg.topic, payload)
         if self._on_message_callback:
             try:
                 self._on_message_callback(client, userdata, msg)
@@ -65,6 +72,7 @@ class MqttClientManager:
     def connect(self):
         try:
             config = self._config_manager.get_config()
+            self._log_manager.log_info(f"正在连接 MQTT {config['mqttServer']}:{config['mqttPort']}")
             self._client = mqtt.Client(
                 callback_api_version=_CALLBACK_API_VERSION,
                 client_id=self._client_id,
@@ -87,6 +95,7 @@ class MqttClientManager:
             self._connected = True
             return {"success": True, "message": "Connected successfully"}
         except Exception as e:
+            self._log_manager.log_error(f"MQTT 连接异常: {str(e)}")
             return {"success": False, "message": str(e)}
 
     def disconnect(self):
@@ -188,18 +197,25 @@ class MqttClientManager:
     def publish_open_door(self):
         try:
             if not self._client or not self._connected:
+                self._log_manager.log_error("开门命令失败: MQTT 未连接")
                 return {"success": False, "message": "Not connected to MQTT broker"}
+            config = self._config_manager.get_config()
+            topic = config.get("doorTopic", "door/00094E53")
             command_payload = json.dumps([
                 {"angle": 90, "duration": 200},
                 {"angle": 0, "duration": 200},
             ])
-            result = self._client.publish("data", command_payload)
+            self._log_manager.log_send(topic, command_payload)
+            result = self._client.publish(topic, command_payload)
             result.wait_for_publish()
             if result.is_published():
+                self._log_manager.log_info(f"开门命令发送成功 → {topic}")
                 return {"success": True, "message": "Door open command sent"}
             else:
+                self._log_manager.log_error("开门命令发送失败")
                 return {"success": False, "message": "Failed to publish door open command"}
         except Exception as e:
+            self._log_manager.log_error(f"开门命令异常: {str(e)}")
             return {"success": False, "message": str(e)}
 
     def reload_config(self):

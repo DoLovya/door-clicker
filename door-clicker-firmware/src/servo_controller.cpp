@@ -73,3 +73,20 @@ void ServoController::execute(const std::vector<DoorCommand> &commands)
 
   Logger::info(kLogTagServo, "Command execution finished");
 }
+
+void ServoController::testOpen()
+{
+  if (!initialized_)
+  {
+    Logger::warn(kLogTagServo, "Servo not initialized, init on pin 5");
+    init(5, 0, 180, 0);
+  }
+
+  Logger::info(kLogTagServo, "Test: rotating to 90deg");
+  servo_.write(clampAngle(90));
+  delay(500);
+  Logger::info(kLogTagServo, "Test: rotating to 0deg");
+  servo_.write(clampAngle(0));
+  delay(500);
+  Logger::info(kLogTagServo, "Test complete");
+}

@@ -68,6 +68,11 @@ namespace
   }
 } // namespace
 
+DoorClickerApp* DoorClickerApp::instance()
+{
+  return instance_;
+}
+
 void DoorClickerApp::setup()
 {
   instance_ = this;

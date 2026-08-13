@@ -4,6 +4,7 @@ from flask import Flask, jsonify, render_template, request
 
 from config_manager import ConfigManager
 from mqtt_client_manager import MqttClientManager
+from log_manager import LogManager
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,6 +32,7 @@ def internal_server_error(error):
 
 config_manager = ConfigManager()
 mqtt_client_manager = MqttClientManager()
+log_manager = LogManager()
 
 
 def init_mqtt():
@@ -143,6 +145,20 @@ def api_delete_topic(topic):
 @app.route("/api/health", methods=["GET"])
 def api_health():
     return jsonify({"status": "ok"})
+
+
+@app.route("/api/logs", methods=["GET"])
+def api_get_logs():
+    log_type = request.args.get("type")
+    limit = request.args.get("limit", type=int)
+    logs = log_manager.get_logs(log_type=log_type, limit=limit)
+    return jsonify(logs)
+
+
+@app.route("/api/logs", methods=["DELETE"])
+def api_clear_logs():
+    log_manager.clear_logs()
+    return jsonify({"success": True, "message": "日志已清空"})
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ public:
   void begin(uint8_t pin, int initialAngle = 0);
   void init(uint8_t pin, int minAngle = 0, int maxAngle = 180, int initialAngle = 0);
   void execute(const std::vector<DoorCommand> &commands);
+  void testOpen();
 
   uint8_t getPin() const { return pin_; }
   int getMinAngle() const { return minAngle_; }

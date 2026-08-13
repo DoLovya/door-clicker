@@ -1,5 +1,6 @@
 #include "http_config_service.h"
 #include "config_store.h"
+#include "door_clicker_app.h"
 
 ESP8266WebServer* HttpConfigService::_srv = nullptr;
 
@@ -15,6 +16,7 @@ void HttpConfigService::begin(ESP8266WebServer &server)
     _srv->on("/", handleRoot);
     _srv->on("/config", handleIndex);
     _srv->on("/config/save", HTTP_POST, handleSave);
+    _srv->on("/servo/test", HTTP_POST, handleServoTest);
 }
 
 static const char* safeStr(const char* s)
@@ -133,9 +135,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 </div>
 <button type="submit" class="btn">保存并重启设备</button>
 </form>
-<div class="footer">v1.0 · Door Clicker</div>
+<div class="card">
+<div class="card-title">舵机测试 (GPIO5)</div>
+<p style="font-size:12px;color:#888;margin-bottom:12px">点击按钮测试舵机旋转: 0° → 90° → 0°</p>
+<button type="button" class="btn" style="background:#4caf50" onclick="testServo()">▶ 测试舵机</button>
+<p id="servoResult" style="margin-top:10px;font-size:13px;color:#4caf50"></p>
 </div>
-<script>function togglePwd(btn,inputId){var input=document.getElementById(inputId||'pwd');if(input.type==='password'){input.type='text';btn.textContent='👁'}else{input.type='password';btn.textContent='👁‍🗨'}}</script>
+<div class="footer">v1.1 · Door Clicker</div>
+</div>
+<script>
+function togglePwd(btn,inputId){var input=document.getElementById(inputId||'pwd');if(input.type==='password'){input.type='text';btn.textContent='👁'}else{input.type='password';btn.textContent='👁‍🗨'}}
+function testServo(){var el=document.getElementById('servoResult');el.style.color='#888';el.textContent='测试中...';fetch('/servo/test',{method:'POST'}).then(function(r){return r.json()}).then(function(d){if(d.success){el.style.color='#4caf50';el.textContent='✓ 测试完成，舵机已旋转'}else{el.style.color='#e53935';el.textContent='✗ 测试失败: '+d.message}}).catch(function(){el.style.color='#e53935';el.textContent='✗ 请求失败'})}
+</script>
 </body>
 </html>
 )HTML");
@@ -180,4 +191,17 @@ void HttpConfigService::handleSave()
             "p{color:#888;margin:0}</style></head><body><div class='box'>"
             "<h2>✗ 保存失败</h2><p>LittleFS写入错误</p></div></body></html>");
     }
+}
+
+void HttpConfigService::handleServoTest()
+{
+    auto *app = DoorClickerApp::instance();
+    if (!app)
+    {
+        _srv->send(500, "application/json", "{\"success\":false,\"message\":\"App not initialized\"}");
+        return;
+    }
+
+    app->getServoController().testOpen();
+    _srv->send(200, "application/json", "{\"success\":true,\"message\":\"Servo test completed\"}");
 }
