@@ -15,6 +15,7 @@ private:
   static void onMqttMessage(char *topic, byte *payload, unsigned int length);
 
   void setupWifi();
+  bool tryConnectWifi();
   bool tryConnectMqtt();
   void handleMqttMessage(char *topic, byte *payload, unsigned int length);
 
@@ -27,6 +28,8 @@ private:
   String mqttClientId_;
   String mqttTopic_;
 
+  unsigned long lastWifiAttemptMs_ = 0;
   unsigned long lastMqttAttemptMs_ = 0;
+  static constexpr unsigned long kWifiRetryIntervalMs = 5000;
   static constexpr unsigned long kMqttRetryIntervalMs = 5000;
 };

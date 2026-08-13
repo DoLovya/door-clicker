@@ -74,11 +74,11 @@ void DoorClickerApp::setup()
 
   const auto &cfg = ConfigStore::instance().getConfig();
 
-  char buf[64];
-  snprintf(buf, sizeof(buf), "door_%08X", ESP.getChipId());
-  mqttClientId_ = String(buf);
-  snprintf(buf, sizeof(buf), "door/%s", mqttClientId_.c_str());
-  mqttTopic_ = String(buf);
+  uint32_t chipId = ESP.getChipId();
+  char chipBuf[16];
+  snprintf(chipBuf, sizeof(chipBuf), "%08X", chipId);
+  mqttClientId_ = String("door_") + chipBuf;
+  mqttTopic_ = String("door/") + chipBuf;
 
   Logger::info(kLogTagBoot, "wifiSsid", cfg.wifiSsid);
   Logger::info(kLogTagBoot, "mqttServer", cfg.mqttServer);
@@ -106,21 +106,32 @@ void DoorClickerApp::setup()
 
 void DoorClickerApp::loop()
 {
-  if (WiFi.status() == WL_CONNECTED)
+  if (WiFi.status() != WL_CONNECTED)
   {
-    if (!mqttClient_.connected())
+    unsigned long now = millis();
+    if (now - lastWifiAttemptMs_ >= kWifiRetryIntervalMs)
     {
-      unsigned long now = millis();
-      if (now - lastMqttAttemptMs_ >= kMqttRetryIntervalMs)
+      lastWifiAttemptMs_ = now;
+      if (tryConnectWifi())
       {
-        lastMqttAttemptMs_ = now;
-        tryConnectMqtt();
+        lastMqttAttemptMs_ = 0;
       }
     }
-    else
+    return;
+  }
+
+  if (!mqttClient_.connected())
+  {
+    unsigned long now = millis();
+    if (now - lastMqttAttemptMs_ >= kMqttRetryIntervalMs)
     {
-      mqttClient_.loop();
+      lastMqttAttemptMs_ = now;
+      tryConnectMqtt();
     }
+  }
+  else
+  {
+    mqttClient_.loop();
   }
 }
 
@@ -208,6 +219,53 @@ void DoorClickerApp::setupWifi()
     }
 
     Logger::info(kLogTagWifi, "AP mode still available at http://192.168.4.1/config");
+  }
+}
+
+bool DoorClickerApp::tryConnectWifi()
+{
+  const auto &cfg = ConfigStore::instance().getConfig();
+
+  if (cfg.wifiSsid == nullptr || cfg.wifiSsid[0] == '\0')
+  {
+    return false;
+  }
+
+  Logger::info(kLogTagWifi, "WiFi disconnected, attempting reconnect...");
+  Logger::info(kLogTagWifi, "ssid", cfg.wifiSsid);
+
+  WiFi.disconnect();
+  WiFi.mode(WIFI_AP_STA);
+  delay(200);
+  WiFi.begin(cfg.wifiSsid, cfg.wifiPassword);
+
+  unsigned int attempt = 0;
+  const unsigned int kMaxAttempts = 40;
+
+  while (WiFi.status() != WL_CONNECTED && attempt < kMaxAttempts)
+  {
+    delay(250);
+    ++attempt;
+  }
+
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Logger::info(kLogTagWifi, "Reconnected to WiFi");
+    String staIp = WiFi.localIP().toString();
+    Logger::info(kLogTagWifi, "Station IP", staIp);
+    char urlBuf[64];
+    snprintf(urlBuf, sizeof(urlBuf), "Visit http://%s/config to configure", staIp.c_str());
+    Logger::info(kLogTagWifi, urlBuf);
+    Logger::info(kLogTagWifi, "AP also available: http://192.168.4.1/config");
+    return true;
+  }
+  else
+  {
+    char errBuf[64];
+    snprintf(errBuf, sizeof(errBuf), "Reconnect failed, status=%s",
+             wifiStatusToString(WiFi.status()).c_str());
+    Logger::error(kLogTagWifi, errBuf);
+    return false;
   }
 }
 

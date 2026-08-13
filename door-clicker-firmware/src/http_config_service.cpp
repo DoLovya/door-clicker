@@ -95,7 +95,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 )HTML");
     _srv->sendContent("<input name=\"pwd\" id=\"pwd\" type=\"password\" value=\"" + String(safeStr(cfg.wifiPassword)) + "\" placeholder=\"Password\">");
     _srv->sendContent(R"HTML(
-<button type="button" class="pwd-eye" onclick="togglePwd()" title="显示/隐藏">👁</button>
+<button type="button" class="pwd-eye" onclick="togglePwd(this,'pwd')" title="显示/隐藏">👁‍🗨</button>
 </div>
 </div>
 </div>
@@ -127,7 +127,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 )HTML");
     _srv->sendContent("<input name=\"mqttPwd\" id=\"mqttPwd\" type=\"password\" value=\"" + String(safeStr(cfg.mqttPassword)) + "\" placeholder=\"留空则不使用\">");
     _srv->sendContent(R"HTML(
-<button type="button" class="pwd-eye" onclick="toggleMqttPwd()" title="显示/隐藏">👁</button>
+<button type="button" class="pwd-eye" onclick="togglePwd(this,'mqttPwd')" title="显示/隐藏">👁‍🗨</button>
 </div>
 </div>
 </div>
@@ -135,7 +135,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 </form>
 <div class="footer">v1.0 · Door Clicker</div>
 </div>
-<script>function togglePwd(){var i=document.getElementById('pwd');i.type=i.type==='password'?'text':'password'}function toggleMqttPwd(){var i=document.getElementById('mqttPwd');i.type=i.type==='password'?'text':'password'}</script>
+<script>function togglePwd(btn,inputId){var input=document.getElementById(inputId||'pwd');if(input.type==='password'){input.type='text';btn.textContent='👁'}else{input.type='password';btn.textContent='👁‍🗨'}}</script>
 </body>
 </html>
 )HTML");
