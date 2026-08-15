@@ -35,63 +35,52 @@
 
 ---
 
-## 1. 初始化舵机 (init)
+### 舵机配置
 
-**主题**: `door/3FF12345`
-**Payload**:
-```json
-{
-  "type": "init",
-  "pin": 5,
-  "minAngle": 0,
-  "maxAngle": 180,
-  "initialAngle": 0
-}
-```
+舵机参数（引脚、角度范围、初始角度）通过 `config.json` 持久化存储，设备启动时自动初始化，无需通过 MQTT 下发。
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `type` | string | ✓ | 固定 `"init"` |
-| `pin` | int | ✓ | ESP8266 舵机引脚号（默认 GPIO5 / D1） |
-| `minAngle` | int | 推荐 | 最小角度，默认 0 |
-| `maxAngle` | int | 推荐 | 最大角度，默认 180 |
-| `initialAngle` | int | 推荐 | 初始化停留角度，默认 0 |
-
-**触发上报**: 设备向 `door/3FF12345/status` 推送 `{"event":"init", ...}`
+config.json 中相关字段：
+- `servoPin`: GPIO 引脚号（默认 5）
+- `servoMinAngle`: 最小角度（默认 0）
+- `servoMaxAngle`: 最大角度（默认 180）
+- `servoInitialAngle`: 初始角度（默认 0）
 
 ---
 
-## 2. 旋转舵机 (rotate)
+## 1. 开门命令 (Rotate)
 
-**主题**: `door/3FF12345`
+**主题**: `door/{device_id}`
+
 **Payload**:
 ```json
 {
   "type": "rotate",
   "actions": [
-    {"angle": 90, "speed": 50, "delay": 100},
-    {"angle": 0, "speed": 50, "delay": 500}
+    {"angle": 90, "duration": 200},
+    {"angle": 0, "duration": 200}
   ]
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `type` | string | ✓ | 固定 `"rotate"` |
-| `actions` | array | ✓ | 动作序列，按顺序执行 |
-| `actions[].angle` | int | ✓ | 目标角度（自动 clamp 到 minAngle~maxAngle） |
-| `actions[].speed` | int | 推荐 | 旋转速度 1-100，默认 50 |
-| `actions[].delay` | int | 推荐 | 到达目标后停留毫秒数 |
+或兼容旧格式：
+```json
+[{"angle": 90, "duration": 200}, {"angle": 0, "duration": 200}]
+```
 
-**触发上报**: 完成后推送 `{"event":"rotate_done", ...}`
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `type` | string | 固定 `"rotate"`（可选，兼容旧格式） |
+| `actions` | array | 动作序列（可选，兼容旧格式） |
+| `angle` | int | 目标角度（0-180） |
+| `duration` | int | 动作持续时间（毫秒） |
 
 ---
 
-## 3. 状态上报 (status)
+## 2. 状态上报 (status)
 
 **主题**: `door/{device_id}/status`
 
-### 3.1 心跳消息
+### 2.1 心跳消息
 
 设备每 30 秒发布一次心跳消息，用于证明设备在线。
 
@@ -110,7 +99,7 @@
 | `clientId` | string | 设备 MQTT 客户端 ID |
 | `uptime` | uint32 | 设备运行时间（秒） |
 
-### 3.2 上线事件
+### 2.2 上线事件
 
 MQTT 连接成功后立即发布。
 
@@ -127,15 +116,12 @@ MQTT 连接成功后立即发布。
 | `event` | string | 固定 `"connected"` |
 | `clientId` | string | 设备 MQTT 客户端 ID |
 
-### 3.3 执行结果
+### 2.3 执行结果
 
 **Payload**:
 ```json
 {
-  "event": "rotate_done",
-  "pin": 5,
-  "angle": 0,
-  "initialized": true,
+  "event": "rotate",
   "clientId": "door_3FF12345"
 }
 ```
@@ -144,10 +130,9 @@ MQTT 连接成功后立即发布。
 |----------|---------|
 | `connected` | MQTT 连接成功 |
 | `heartbeat` | 每 30 秒定期上报 |
-| `init` | 舵机初始化完成 |
-| `rotate_done` | 旋转动作序列完成 |
+| `rotate` | 接收开门命令 |
 
-### 3.4 在线/离线判定规则
+### 2.4 在线/离线判定规则
 
 | 条件 | 判定结果 |
 |------|---------|
@@ -164,11 +149,6 @@ MQTT 连接成功后立即发布。
 
 | 字段 | 类型 | 范围 | 说明 |
 |------|------|------|------|
-| `pin` | uint8 | 0-16 | ESP8266 GPIO 引脚（默认 5） |
-| `minAngle` | int | 0-180 | 最小角度限制 |
-| `maxAngle` | int | 0-180 | 最大角度限制 |
-| `angle` | int | minAngle-maxAngle | 目标/当前角度 |
-| `speed` | int | 1-100 | 旋转速度（数值越大越快） |
-| `delay` | int | ≥0 | 停留延时 (ms) |
+| `angle` | int | 0-180 | 目标角度 |
 | `duration` | int | ≥0 | 每个动作的持续时间 (ms) |
 | `uptime` | uint32 | ≥0 | 设备运行时间（秒），心跳消息中上报 |

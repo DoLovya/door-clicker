@@ -1,0 +1,23 @@
+- [x] Checkpoint 1: ConfigStore 扩展了舵机配置字段（servoPin, servoMinAngle, servoMaxAngle, servoInitialAngle）
+- [x] Checkpoint 2: syncDocToStruct() 正确解析舵机配置
+- [x] Checkpoint 3: config.json 无舵机字段时使用默认值（pin=5, range=0-180, angle=0）
+- [x] Checkpoint 4: setup() 在 WiFi 初始化后、MQTT 连接前初始化舵机
+- [x] Checkpoint 5: setup() 中舵机初始化失败不阻塞 WiFi/MQTT 连接
+- [x] Checkpoint 6: MqttCmdType 枚举已删除 Init 值
+- [x] Checkpoint 7: DoorCommandMessage 结构体已删除 initConfig 成员
+- [x] Checkpoint 8: parseDoorCommandMessage() 不再解析 Init 命令
+- [x] Checkpoint 9: handleMqttMessage() 不再处理 Init 类型
+- [x] Checkpoint 10: ServoController 已删除 lastInit*_ 成员变量
+- [x] Checkpoint 11: execute() 不再包含自动初始化逻辑
+- [x] Checkpoint 12: testOpen() 不再包含自动初始化逻辑
+- [x] Checkpoint 13: execute() 在未初始化时记录警告并返回
+- [x] Checkpoint 14: Web config_manager.py 包含舵机默认配置值
+- [x] Checkpoint 15: 配置页面显示舵机配置表单（引脚、角度范围、初始角度）
+- [x] Checkpoint 16: 配置页面 loadConfig() 正确加载舵机参数
+- [x] Checkpoint 17: 配置页面 saveConfig() 正确保存舵机参数
+- [x] Checkpoint 18: 协议文档已删除 Init 协议说明
+- [x] Checkpoint 19: 协议文档正确描述 Rotate 协议
+- [ ] Checkpoint 20: 固件编译通过无错误
+- [x] Checkpoint 21: Web 端现有测试全部通过（无回归）
+- [ ] Checkpoint 22: 设备重启后开门命令立即可用（手动验证）
+- [ ] Checkpoint 23: Init 协议消息被正确忽略（手动验证）

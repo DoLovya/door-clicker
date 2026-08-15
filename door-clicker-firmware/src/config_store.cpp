@@ -49,6 +49,22 @@ void ConfigStore::syncDocToStruct()
     s = _doc["mqttPassword"] | "";
     _cfg.mqttPassword = s;
     Logger::info("CFG", "mqttPassword length", String(s ? strlen(s) : 0));
+
+    // servoPin
+    _cfg.servoPin = _doc["servoPin"] | 5;
+    Logger::info("CFG", "servoPin", _cfg.servoPin);
+
+    // servoMinAngle
+    _cfg.servoMinAngle = _doc["servoMinAngle"] | 0;
+    Logger::info("CFG", "servoMinAngle", _cfg.servoMinAngle);
+
+    // servoMaxAngle
+    _cfg.servoMaxAngle = _doc["servoMaxAngle"] | 180;
+    Logger::info("CFG", "servoMaxAngle", _cfg.servoMaxAngle);
+
+    // servoInitialAngle
+    _cfg.servoInitialAngle = _doc["servoInitialAngle"] | 0;
+    Logger::info("CFG", "servoInitialAngle", _cfg.servoInitialAngle);
 }
 
 bool ConfigStore::load()

@@ -33,21 +33,7 @@ DoorCommandMessage parseDoorCommandMessage(const byte *payload, unsigned int len
 
   const char *type = doc["type"] | "";
 
-  if (strcmp(type, "init") == 0)
-  {
-    msg.type = MqttCmdType::Init;
-    msg.initConfig.pin = doc["pin"] | 5;
-    msg.initConfig.minAngle = doc["minAngle"] | 0;
-    msg.initConfig.maxAngle = doc["maxAngle"] | 180;
-    msg.initConfig.initialAngle = doc["initialAngle"] | 0;
-
-    char logBuf[64];
-    snprintf(logBuf, sizeof(logBuf), "init: pin=%d range=%d-%d angle=%d",
-             msg.initConfig.pin, msg.initConfig.minAngle,
-             msg.initConfig.maxAngle, msg.initConfig.initialAngle);
-    Logger::info(kLogTagCmd, logBuf);
-  }
-  else if (strcmp(type, "rotate") == 0)
+  if (strcmp(type, "rotate") == 0)
   {
     msg.type = MqttCmdType::Rotate;
 

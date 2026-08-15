@@ -78,8 +78,8 @@ void ServoController::testOpen()
 {
   if (!initialized_)
   {
-    Logger::warn(kLogTagServo, "Servo not initialized, init on pin 5");
-    init(5, 0, 180, 0);
+    Logger::warn(kLogTagServo, "Servo not initialized, skip test");
+    return;
   }
 
   Logger::info(kLogTagServo, "Test: rotating to 90deg");

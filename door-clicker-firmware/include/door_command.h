@@ -7,16 +7,7 @@
 enum class MqttCmdType
 {
   Unknown,
-  Init,
   Rotate,
-};
-
-struct ServoInitConfig
-{
-  uint8_t pin;
-  int minAngle;
-  int maxAngle;
-  int initialAngle;
 };
 
 struct DoorCommand
@@ -28,7 +19,6 @@ struct DoorCommand
 struct DoorCommandMessage
 {
   MqttCmdType type;
-  ServoInitConfig initConfig;
   std::vector<DoorCommand> commands;
 };
 

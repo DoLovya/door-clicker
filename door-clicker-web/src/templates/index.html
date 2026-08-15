@@ -757,6 +757,8 @@
                 .then(function () { window.location.href = '/login'; })
                 .catch(function () { window.location.href = '/login'; });
         };
+        document.getElementById('btnSaveConfig').onclick = saveConfig;
+
         document.getElementById('btnChangePassword').onclick = changePassword;
 
         loadConfig();

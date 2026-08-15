@@ -11,6 +11,11 @@ struct AppConfigData
     int mqttPort;
     const char* mqttUsername;
     const char* mqttPassword;
+
+    uint8_t servoPin;
+    int servoMinAngle;
+    int servoMaxAngle;
+    int servoInitialAngle;
 };
 
 class ConfigStore

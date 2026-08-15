@@ -97,6 +97,13 @@ void DoorClickerApp::setup()
 
   setupWifi();
 
+  // Initialize servo from config
+  Logger::info(kLogTagBoot, "servoPin", cfg.servoPin);
+  Logger::info(kLogTagBoot, "servoMinAngle", cfg.servoMinAngle);
+  Logger::info(kLogTagBoot, "servoMaxAngle", cfg.servoMaxAngle);
+  Logger::info(kLogTagBoot, "servoInitialAngle", cfg.servoInitialAngle);
+  servoController_.init(cfg.servoPin, cfg.servoMinAngle, cfg.servoMaxAngle, cfg.servoInitialAngle);
+
   if (cfg.mqttServer != nullptr && cfg.mqttServer[0] != '\0')
   {
     mqttClient_.setClient(wifiClient_);
@@ -330,15 +337,7 @@ void DoorClickerApp::handleMqttMessage(char *topic, byte *payload, unsigned int 
 
   const DoorCommandMessage msg = parseDoorCommandMessage(payload, length);
 
-  if (msg.type == MqttCmdType::Init)
-  {
-    servoController_.init(
-        msg.initConfig.pin,
-        msg.initConfig.minAngle,
-        msg.initConfig.maxAngle,
-        msg.initConfig.initialAngle);
-  }
-  else if (msg.type == MqttCmdType::Rotate)
+  if (msg.type == MqttCmdType::Rotate)
   {
     servoController_.execute(msg.commands);
   }
