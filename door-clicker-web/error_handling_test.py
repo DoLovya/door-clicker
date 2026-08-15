@@ -1,8 +1,10 @@
+import hashlib
 import json
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import app as app_module
+import auth
 
 
 class TestErrorHandling(unittest.TestCase):
@@ -15,6 +17,7 @@ class TestErrorHandling(unittest.TestCase):
             "mqttPort": 1883,
             "mqttUsername": "",
             "mqttPassword": "",
+            "adminUser": "admin",
             "topics": [],
         }
         self.mock_config.get_config.return_value = default_cfg
@@ -48,7 +51,15 @@ class TestErrorHandling(unittest.TestCase):
         self.app.config['PROPAGATE_EXCEPTIONS'] = False
         self.client = self.app.test_client()
 
+        self._hash_patcher = patch('auth._get_stored_hash',
+            return_value=hashlib.sha256(b"admin").hexdigest())
+        self._hash_patcher.start()
+
+        self.client.post('/api/auth/login',
+            json={"username": "admin", "password": "admin"})
+
     def tearDown(self):
+        self._hash_patcher.stop()
         app_module.config_manager = self._saved_config
         app_module.mqtt_client_manager = self._saved_mqtt
 

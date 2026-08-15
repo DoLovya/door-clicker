@@ -322,6 +322,7 @@ class TestMqttClientManager(unittest.TestCase):
             "mqttPort": 1883,
             "mqttUsername": "",
             "mqttPassword": "",
+            "doorTopic": "door/00094E53",
             "topics": [],
         }
         mock_config_class.return_value = mock_config
@@ -340,7 +341,7 @@ class TestMqttClientManager(unittest.TestCase):
         self.assertTrue(result["success"])
         mock_client.publish.assert_called_once()
         call_args = mock_client.publish.call_args
-        self.assertEqual(call_args[0][0], "data")
+        self.assertEqual(call_args[0][0], "door/00094E53")
 
         payload = json.loads(call_args[0][1])
         self.assertEqual(len(payload), 2)
@@ -358,6 +359,7 @@ class TestMqttClientManager(unittest.TestCase):
             "mqttPort": 1883,
             "mqttUsername": "",
             "mqttPassword": "",
+            "doorTopic": "door/00094E53",
             "topics": [],
         }
         mock_config_class.return_value = mock_config
@@ -377,6 +379,7 @@ class TestMqttClientManager(unittest.TestCase):
             "mqttPort": 1883,
             "mqttUsername": "",
             "mqttPassword": "",
+            "doorTopic": "door/00094E53",
             "topics": [],
         }
         mock_config_class.return_value = mock_config

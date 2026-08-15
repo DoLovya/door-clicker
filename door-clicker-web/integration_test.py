@@ -1,13 +1,15 @@
+import hashlib
 import json
 import os
 import sys
 import tempfile
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import app as app_module
+import auth
 from config_manager import ConfigManager
 
 
@@ -52,7 +54,15 @@ class TestIntegration(unittest.TestCase):
         self.app.config['TESTING'] = True
         self.client = self.app.test_client()
 
+        self._hash_patcher = patch('auth._get_stored_hash',
+            return_value=hashlib.sha256(b"admin").hexdigest())
+        self._hash_patcher.start()
+
+        self.client.post('/api/auth/login',
+            json={"username": "admin", "password": "admin"})
+
     def tearDown(self):
+        self._hash_patcher.stop()
         app_module.config_manager = self._saved_config
         app_module.mqtt_client_manager = self._saved_mqtt
         ConfigManager._instance = None

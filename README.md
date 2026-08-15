@@ -2,6 +2,9 @@
 
 基于 ESP8266 的智能门禁控制系统，通过 MQTT 协议实现远程开门。
 
+[![Web CI](https://github.com/{owner}/{repo}/actions/workflows/web-ci.yml/badge.svg)](https://github.com/{owner}/{repo}/actions/workflows/web-ci.yml)
+[![Firmware CI](https://github.com/{owner}/{repo}/actions/workflows/firmware-ci.yml/badge.svg)](https://github.com/{owner}/{repo}/actions/workflows/firmware-ci.yml)
+
 ## 项目结构
 
 ```

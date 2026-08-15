@@ -1,0 +1,6 @@
+{
+  "wifiSsid": "YOUR_WIFI_SSID",
+  "wifiPassword": "YOUR_WIFI_PASSWORD",
+  "mqttServer": "YOUR_MQTT_SERVER",
+  "mqttPort": 1883
+}

@@ -168,7 +168,7 @@ class MqttClientManager:
     def subscribe_topic(self, topic):
         try:
             if not self._client or not self._connected:
-                self._log_manager.log_error(f"订阅失败: MQTT 未连接")
+                self._log_manager.log_error("订阅失败: MQTT 未连接")
                 return {"success": False, "message": "Not connected to MQTT broker"}
             result = self._client.subscribe(topic)
             if result[0] == 0:
