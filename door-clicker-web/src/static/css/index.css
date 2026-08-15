@@ -1,0 +1,194 @@
+/* ===== Config Page (index.html) Styles ===== */
+
+body {
+    background: var(--color-bg-light);
+    color: var(--color-text-primary);
+    min-height: 100vh;
+    padding: 16px;
+}
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ===== Door Button ===== */
+.door-button {
+    display: block;
+    width: 100%;
+    padding: 28px;
+    font-size: 20px;
+    font-weight: 600;
+    background: var(--color-success-dark);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: background var(--transition-normal) ease, transform var(--transition-fast) ease;
+    letter-spacing: 4px;
+}
+
+.door-button:hover {
+    background: #45a049;
+}
+
+.door-button:active {
+    transform: scale(0.98);
+}
+
+/* ===== Log Components ===== */
+.log-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+.log-filter {
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.log-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    background: #fafafa;
+}
+
+.log-empty {
+    text-align: center;
+    padding: 32px;
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+.log-entry {
+    display: flex;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--color-border-light);
+    font-size: 13px;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-time {
+    color: var(--color-text-muted);
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.log-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.log-badge.info {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+.log-badge.send {
+    background: #e8f8e8;
+    color: #52c41a;
+}
+
+.log-badge.receive {
+    background: #fff7e6;
+    color: #fa8c16;
+}
+
+.log-badge.error {
+    background: #fff1f0;
+    color: var(--color-error);
+}
+
+.log-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.log-message {
+    color: var(--color-text-primary);
+    word-break: break-all;
+}
+
+.log-detail {
+    margin-top: 4px;
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    background: #fff;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-light);
+    cursor: pointer;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.log-detail.collapsed {
+    max-height: 0;
+    padding: 0 8px;
+    margin: 0;
+    overflow: hidden;
+    border: none;
+    transition: all var(--transition-normal) ease;
+}
+
+.log-summary {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.log-summary:hover {
+    color: var(--color-primary);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+    body {
+        padding: 10px;
+    }
+
+    .card {
+        padding: 16px;
+        border-radius: 10px;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .btn-group {
+        flex-direction: column;
+    }
+
+    .btn-group .btn {
+        width: 100%;
+    }
+
+    .door-button {
+        padding: 24px;
+        font-size: 18px;
+    }
+}

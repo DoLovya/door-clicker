@@ -1,0 +1,114 @@
+/* ===== Button Components ===== */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    gap: 4px;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+}
+
+.btn-secondary {
+    background: #fff;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--color-primary-light);
+}
+
+.btn-danger {
+    background: #fff;
+    color: var(--color-error);
+    border: 1px solid var(--color-error);
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #fff1f0;
+}
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+/* ===== Status Dot Component ===== */
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #bbb;
+    transition: background var(--transition-normal) ease;
+}
+
+.status-dot.connected {
+    background: var(--color-success-dark);
+    box-shadow: 0 0 6px rgba(76, 175, 80, 0.5);
+}
+
+.status-dot.connecting {
+    background: #FFC107;
+    box-shadow: 0 0 6px rgba(255, 193, 7, 0.5);
+    animation: pulse 1.2s infinite;
+}
+
+.status-dot.disconnected {
+    background: #bbb;
+}
+
+/* ===== Toast Component ===== */
+.toast {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    padding: 12px 24px;
+    border-radius: var(--radius-md);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0;
+    transition: all var(--transition-slow) ease;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast.success {
+    background: var(--color-success);
+}
+
+.toast.error {
+    background: var(--color-error);
+}
+
+.toast.info {
+    background: var(--color-primary);
+}

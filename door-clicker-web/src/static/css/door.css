@@ -1,0 +1,181 @@
+/* ===== Door Page (door.html) Styles ===== */
+
+html, body {
+    height: 100%;
+    background: linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+}
+
+/* ===== Status Bar ===== */
+.status-bar {
+    position: fixed;
+    top: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ===== Status Dot Variants for Door Page ===== */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #bbb;
+    transition: background var(--transition-normal);
+}
+
+.status-dot.connected {
+    background: var(--color-success-dark);
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+}
+
+.status-dot.device-online {
+    background: #2196F3;
+    box-shadow: 0 0 8px rgba(33, 150, 243, 0.6);
+}
+
+.status-dot.device-offline {
+    background: var(--color-warning);
+    box-shadow: 0 0 8px rgba(255, 152, 0, 0.6);
+}
+
+.status-dot.device-unknown {
+    background: #bbb;
+}
+
+/* ===== Device Warning ===== */
+.device-warning {
+    display: none;
+    position: fixed;
+    top: 45%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    background: rgba(255, 152, 0, 0.2);
+    border: 1px solid var(--color-warning);
+    border-radius: var(--radius-md);
+    color: var(--color-warning);
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 100;
+}
+
+.device-warning.show {
+    display: block;
+}
+
+/* ===== Door Button ===== */
+.door-btn {
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #4CAF50, #2E7D32);
+    border: 6px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 8px;
+    cursor: pointer;
+    box-shadow:
+        0 10px 40px rgba(76, 175, 80, 0.4),
+        inset 0 2px 10px rgba(255, 255, 255, 0.2),
+        inset 0 -4px 10px rgba(0, 0, 0, 0.2);
+    transition: all var(--transition-fast) ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.door-btn:active {
+    transform: scale(0.95);
+    box-shadow:
+        0 5px 20px rgba(76, 175, 80, 0.3),
+        inset 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.door-btn.pressed {
+    background: linear-gradient(145deg, #45a049, #1B5E20);
+}
+
+.door-btn .label {
+    position: relative;
+    z-index: 2;
+}
+
+.door-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.4s, height 0.4s;
+}
+
+.door-btn:active::after {
+    width: 300px;
+    height: 300px;
+}
+
+/* ===== Footer ===== */
+.footer {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+}
+
+.footer a {
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.footer a:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ===== Toast Override for Door Page ===== */
+.toast {
+    top: 60px;
+    transform: translateX(-50%) translateY(-20px);
+}
+
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ===== Responsive ===== */
+@media (max-height: 600px) {
+    .door-btn {
+        width: 180px;
+        height: 180px;
+        font-size: 22px;
+    }
+}
