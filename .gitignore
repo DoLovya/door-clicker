@@ -21,3 +21,9 @@ door-clicker-web/myenv/
 **/.piolibdeps/
 **/.sconsign*.dblite
 **/.pioenvs/
+
+# Sensitive files - DO NOT commit
+door-clicker-web/config.json
+door-clicker-web/logs/
+door-clicker-web/*.log
+door-clicker-firmware/data/config.json
