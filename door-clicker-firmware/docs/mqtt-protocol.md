@@ -23,6 +23,18 @@
 
 ---
 
+## 引脚配置
+
+| ESP8266 引脚 | GPIO | 功能 | 备注 |
+|-------------|------|------|------|
+| D1 | **5** | 舵机信号线 (PWM) | 默认引脚 |
+| VCC | 3.3V | 舵机电源 | 建议外部 5V 供电 |
+| G | GND | 接地 | - |
+
+> ⚠️ GPIO5 对应开发板 D1 引脚。舵机启动电流较大（可达 500mA+），建议使用外部电源供电。
+
+---
+
 ## 1. 初始化舵机 (init)
 
 **主题**: `door/3FF12345`
@@ -30,7 +42,7 @@
 ```json
 {
   "type": "init",
-  "pin": 2,
+  "pin": 5,
   "minAngle": 0,
   "maxAngle": 180,
   "initialAngle": 0
@@ -40,7 +52,7 @@
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `type` | string | ✓ | 固定 `"init"` |
-| `pin` | int | ✓ | ESP8266 舵机引脚号 |
+| `pin` | int | ✓ | ESP8266 舵机引脚号（默认 GPIO5 / D1） |
 | `minAngle` | int | 推荐 | 最小角度，默认 0 |
 | `maxAngle` | int | 推荐 | 最大角度，默认 180 |
 | `initialAngle` | int | 推荐 | 初始化停留角度，默认 0 |
@@ -82,7 +94,7 @@
 ```json
 {
   "event": "rotate_done",
-  "pin": 2,
+  "pin": 5,
   "angle": 0,
   "initialized": true,
   "clientId": "door_3FF12345"
@@ -101,9 +113,10 @@
 
 | 字段 | 类型 | 范围 | 说明 |
 |------|------|------|------|
-| `pin` | uint8 | 0-16 | ESP8266 GPIO 引脚 |
+| `pin` | uint8 | 0-16 | ESP8266 GPIO 引脚（默认 5） |
 | `minAngle` | int | 0-180 | 最小角度限制 |
 | `maxAngle` | int | 0-180 | 最大角度限制 |
 | `angle` | int | minAngle-maxAngle | 目标/当前角度 |
 | `speed` | int | 1-100 | 旋转速度（数值越大越快） |
 | `delay` | int | ≥0 | 停留延时 (ms) |
+| `duration` | int | ≥0 | 每个动作的持续时间 (ms) |
