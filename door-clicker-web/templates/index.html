@@ -389,8 +389,9 @@
 
 <body>
     <div class="container">
-        <div style="text-align:right;margin-bottom:-8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:-8px">
             <a href="/" style="color:#1677ff;font-size:13px;text-decoration:none">← 返回开门页</a>
+            <button class="btn btn-danger" id="btnLogout" style="padding:4px 10px;font-size:12px">退出登录</button>
         </div>
 
         <!-- MQTT 连接配置 -->
@@ -433,6 +434,27 @@
             <div class="btn-group">
                 <button class="btn btn-primary" id="btnSaveConfig">保存配置</button>
                 <button class="btn btn-secondary" id="btnTestConnection">测试连接</button>
+            </div>
+        </div>
+
+        <!-- 修改密码 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">修改管理员密码</div>
+            </div>
+
+            <div class="form-group">
+                <label for="newPassword">新密码</label>
+                <input type="password" id="newPassword" placeholder="至少4位">
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">确认新密码</label>
+                <input type="password" id="confirmPassword" placeholder="再次输入">
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnChangePassword">修改密码</button>
             </div>
         </div>
 
@@ -501,7 +523,7 @@
                     document.getElementById('broker').value = data.mqttServer || '';
                     document.getElementById('port').value = data.mqttPort || 1883;
                     document.getElementById('username').value = data.mqttUsername || '';
-                    document.getElementById('password').value = data.mqttPassword || '';
+                    document.getElementById('password').value = '';
                     document.getElementById('doorTopic').value = data.doorTopic || '';
                 })
                 .catch(function () {
@@ -671,6 +693,39 @@
         document.getElementById('btnRefreshLogs').onclick = loadLogs;
         document.getElementById('btnClearLogs').onclick = clearLogs;
         document.getElementById('logFilter').onchange = loadLogs;
+        document.getElementById('btnLogout').onclick = function () {
+            if (!confirm('确定要退出登录吗？')) return;
+            fetch('/api/auth/logout', { method: 'POST' })
+                .then(function () { window.location.href = '/login'; })
+                .catch(function () { window.location.href = '/login'; });
+        };
+
+        document.getElementById('btnChangePassword').onclick = function () {
+            var newPwd = document.getElementById('newPassword').value;
+            var confirmPwd = document.getElementById('confirmPassword').value;
+            if (!newPwd || newPwd.length < 4) {
+                showToast('密码至少4位', 'error');
+                return;
+            }
+            if (newPwd !== confirmPwd) {
+                showToast('两次密码不一致', 'error');
+                return;
+            }
+            fetch('/api/config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminPassword: newPwd })
+            })
+                .then(function (res) { return res.json(); })
+                .then(function () {
+                    showToast('密码修改成功', 'success');
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                })
+                .catch(function () {
+                    showToast('密码修改失败', 'error');
+                });
+        };
 
         loadConfig();
         loadStatus();

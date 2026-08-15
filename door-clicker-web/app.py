@@ -5,6 +5,7 @@ from flask import Flask, jsonify, render_template, request
 from config_manager import ConfigManager
 from mqtt_client_manager import MqttClientManager
 from log_manager import LogManager
+from auth import init_auth, login_required
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,6 +35,8 @@ config_manager = ConfigManager()
 mqtt_client_manager = MqttClientManager()
 log_manager = LogManager()
 
+init_auth(app, config_manager)
+
 
 def init_mqtt():
     logger.info("Initializing MQTT connection...")
@@ -53,6 +56,7 @@ def index():
 
 
 @app.route("/config")
+@login_required
 def config_page():
     return render_template("index.html")
 
@@ -66,12 +70,16 @@ def api_open_door():
 
 
 @app.route("/api/config", methods=["GET"])
+@login_required
 def api_get_config():
     config = config_manager.get_config()
-    return jsonify(config)
+    safe_config = {k: v for k, v in config.items() if k not in ("adminPasswordHash",)}
+    safe_config["mqttPassword"] = "***" if config.get("mqttPassword") else ""
+    return jsonify(safe_config)
 
 
 @app.route("/api/config", methods=["PUT"])
+@login_required
 def api_update_config():
     data = request.get_json(silent=True)
     if not data:
@@ -95,6 +103,12 @@ def api_update_config():
         if not isinstance(data["topics"], list):
             return jsonify({"error": "Topics must be an array"}), 400
 
+    if "adminPassword" in data:
+        import hashlib
+        new_hash = hashlib.sha256(data["adminPassword"].encode("utf-8")).hexdigest()
+        data["adminPasswordHash"] = new_hash
+        del data["adminPassword"]
+
     config = config_manager.update_config(data)
     reload_result = mqtt_client_manager.reload_config()
 
@@ -105,6 +119,7 @@ def api_update_config():
 
 
 @app.route("/api/mqtt/test", methods=["POST"])
+@login_required
 def api_test_mqtt():
     result = mqtt_client_manager.test_connection()
     return jsonify(result)
@@ -116,12 +131,14 @@ def api_mqtt_status():
 
 
 @app.route("/api/topics", methods=["GET"])
+@login_required
 def api_get_topics():
     topics = mqtt_client_manager.get_subscribed_topics()
     return jsonify(topics)
 
 
 @app.route("/api/topics", methods=["POST"])
+@login_required
 def api_add_topic():
     data = request.get_json(silent=True)
     if not data or "topic" not in data:
@@ -140,6 +157,7 @@ def api_add_topic():
 
 
 @app.route("/api/topics/<path:topic>", methods=["DELETE"])
+@login_required
 def api_delete_topic(topic):
     result = mqtt_client_manager.unsubscribe_topic(topic)
     if result["success"]:
@@ -153,6 +171,7 @@ def api_health():
 
 
 @app.route("/api/logs", methods=["GET"])
+@login_required
 def api_get_logs():
     log_type = request.args.get("type")
     limit = request.args.get("limit", type=int)
@@ -161,6 +180,7 @@ def api_get_logs():
 
 
 @app.route("/api/logs", methods=["DELETE"])
+@login_required
 def api_clear_logs():
     log_manager.clear_logs()
     return jsonify({"success": True, "message": "日志已清空"})

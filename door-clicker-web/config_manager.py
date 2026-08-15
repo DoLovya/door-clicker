@@ -14,6 +14,8 @@ class ConfigManager:
         "mqttUsername": "",
         "mqttPassword": "",
         "doorTopic": "door/00094E53",
+        "adminUser": "admin",
+        "adminPasswordHash": "",
         "topics": [],
     }
 

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>管理员登录</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #333;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 360px;
+            background: #fff;
+            border-radius: 16px;
+            padding: 40px 32px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 16px;
+            background: linear-gradient(145deg, #1677ff, #0958d9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 28px;
+        }
+
+        .login-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+
+        .login-subtitle {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #d9d9d9;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s;
+            background: #fafafa;
+        }
+
+        .form-group input:focus {
+            border-color: #1677ff;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12);
+        }
+
+        .error-msg {
+            background: #fff1f0;
+            border: 1px solid #ffccc7;
+            color: #cf1322;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .error-msg.show {
+            display: block;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(145deg, #1677ff, #0958d9);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn-login:hover {
+            background: linear-gradient(145deg, #4096ff, #1677ff);
+        }
+
+        .btn-login:active {
+            transform: scale(0.98);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #888;
+            font-size: 13px;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: #1677ff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-icon">🔑</div>
+            <div class="login-title">Door Clicker</div>
+            <div class="login-subtitle">请登录以访问配置</div>
+        </div>
+
+        <div class="error-msg" id="errorMsg"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" autocomplete="username" placeholder="请输入用户名">
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" autocomplete="current-password" placeholder="请输入密码">
+            </div>
+
+            <button type="submit" class="btn-login" id="btnLogin">登 录</button>
+        </form>
+
+        <a href="/" class="back-link">← 返回首页</a>
+    </div>
+
+    <script>
+        var errorMsg = document.getElementById('errorMsg');
+        var form = document.getElementById('loginForm');
+        var btnLogin = document.getElementById('btnLogin');
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.classList.add('show');
+        }
+
+        function hideError() {
+            errorMsg.classList.remove('show');
+        }
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            hideError();
+
+            var username = document.getElementById('username').value.trim();
+            var password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showError('请输入用户名和密码');
+                return;
+            }
+
+            btnLogin.disabled = true;
+            btnLogin.textContent = '登录中...';
+
+            fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password })
+            })
+                .then(function (res) { return res.json().then(function (data) { return { status: res.status, data: data }; }); })
+                .then(function (result) {
+                    if (result.status === 200 && result.data.success) {
+                        var next = new URLSearchParams(window.location.search).get('next') || '/config';
+                        window.location.href = next;
+                    } else {
+                        showError(result.data.error || '登录失败');
+                        btnLogin.disabled = false;
+                        btnLogin.textContent = '登 录';
+                    }
+                })
+                .catch(function () {
+                    showError('网络错误，请重试');
+                    btnLogin.disabled = false;
+                    btnLogin.textContent = '登 录';
+                });
+        });
+
+        document.getElementById('username').focus();
+    </script>
+</body>
+
+</html>
