@@ -1,0 +1,12 @@
+- [x] Checkpoint 1: `.github/workflows/web-ci.yml` 文件存在且语法正确
+- [x] Checkpoint 2: web-ci 工作流包含 checkout、setup-python、pip install、flake8、unittest 五个步骤
+- [x] Checkpoint 3: web-ci 工作流触发条件为 push 和 pull_request 到 main 分支
+- [x] Checkpoint 4: `python -m unittest discover -s door-clicker-web -p "*_test.py"` 在本地能通过
+- [x] Checkpoint 5: `.flake8` 配置文件存在且 `flake8 door-clicker-web/` 能通过（退出码 0）
+- [x] Checkpoint 6: `.github/workflows/firmware-ci.yml` 文件存在且语法正确
+- [x] Checkpoint 7: firmware-ci 工作流包含 checkout、pip install platformio、pio run 步骤
+- [x] Checkpoint 8: firmware-ci 工作流触发条件为 push 和 pull_request 到 main 分支
+- [ ] Checkpoint 9: `pio run` 在 door-clicker-firmware 目录下本地能成功编译（需用户验证）
+- [x] Checkpoint 10: README.md 包含 GitHub Actions 构建状态徽章
+- [x] Checkpoint 11: 徽章链接指向正确的 workflow 文件路径
+- [x] Checkpoint 12: 所有 YAML 文件缩进正确、格式规范

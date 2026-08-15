@@ -1,0 +1,5 @@
+[flake8]
+max-line-length = 120
+exclude = .git,__pycache__,myenv,.venv,venv,*.egg-info,.pio,.piolibdeps
+per-file-ignores =
+    *_test.py: E128, F401, E402, W292
