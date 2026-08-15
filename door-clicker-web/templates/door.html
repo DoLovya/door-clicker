@@ -200,6 +200,22 @@
             }
         }
 
+        function throttle(fn, delay) {
+            var last = 0;
+            var warned = false;
+            return function () {
+                var now = Date.now();
+                if (now - last >= delay) {
+                    last = now;
+                    warned = false;
+                    fn.apply(this, arguments);
+                } else if (!warned) {
+                    showToast('操作过于频繁，请稍后再试', 'info');
+                    warned = true;
+                }
+            };
+        }
+
         function loadStatus() {
             fetch('/api/mqtt/status')
                 .then(function (res) { return res.json(); })
@@ -211,9 +227,21 @@
                 });
         }
 
-        document.getElementById('btnOpenDoor').addEventListener('click', function () {
-            var btn = this;
+        var isOpening = false;
+
+        function doOpenDoor() {
+            if (isOpening) {
+                showToast('指令发送中，请稍候...', 'info');
+                return;
+            }
+            isOpening = true;
+
+            var btn = document.getElementById('btnOpenDoor');
             btn.classList.add('pressed');
+            btn.style.pointerEvents = 'none';
+            var label = btn.querySelector('.label');
+            var originalText = label.textContent;
+            label.textContent = '开门中...';
             showToast('开门指令发送中...', 'info');
 
             fetch('/api/open/door', {
@@ -232,11 +260,16 @@
                     showToast('发送失败，请检查网络', 'error');
                 })
                 .finally(function () {
+                    isOpening = false;
+                    label.textContent = originalText;
                     setTimeout(function () {
                         btn.classList.remove('pressed');
-                    }, 300);
+                        btn.style.pointerEvents = '';
+                    }, 500);
                 });
-        });
+        }
+
+        document.getElementById('btnOpenDoor').addEventListener('click', throttle(doOpenDoor, 1000));
 
         loadStatus();
         setInterval(loadStatus, 5000);

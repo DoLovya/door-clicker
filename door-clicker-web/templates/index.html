@@ -519,12 +519,12 @@
         function loadConfig() {
             fetch('/api/config')
                 .then(function (res) { return res.json(); })
-                .then(function (data) {
-                    document.getElementById('broker').value = data.mqttServer || '';
-                    document.getElementById('port').value = data.mqttPort || 1883;
-                    document.getElementById('username').value = data.mqttUsername || '';
-                    document.getElementById('password').value = '';
-                    document.getElementById('doorTopic').value = data.doorTopic || '';
+                .then(function (config) {
+                    document.getElementById('broker').value = config.mqttServer || '';
+                    document.getElementById('port').value = config.mqttPort || 1883;
+                    document.getElementById('username').value = config.mqttUsername || '';
+                    document.getElementById('password').value = config.mqttPassword || '';
+                    document.getElementById('doorTopic').value = config.doorTopic || '';
                 })
                 .catch(function () {
                     showToast('加载配置失败', 'error');
@@ -532,6 +532,10 @@
         }
 
         function saveConfig() {
+            var btn = document.getElementById('btnSaveConfig');
+            btn.disabled = true;
+            btn.textContent = '保存中...';
+
             var config = {
                 mqttServer: document.getElementById('broker').value.trim(),
                 mqttPort: parseInt(document.getElementById('port').value) || 1883,
@@ -551,10 +555,17 @@
                 })
                 .catch(function () {
                     showToast('配置保存失败', 'error');
+                })
+                .finally(function () {
+                    btn.disabled = false;
+                    btn.textContent = '保存配置';
                 });
         }
 
         function testConnection() {
+            var btn = document.getElementById('btnTestConnection');
+            btn.disabled = true;
+            btn.textContent = '测试中...';
             setStatus('connecting');
             showToast('正在测试连接...', 'info');
 
@@ -575,6 +586,10 @@
                 .catch(function () {
                     setStatus('disconnected');
                     showToast('连接测试失败', 'error');
+                })
+                .finally(function () {
+                    btn.disabled = false;
+                    btn.textContent = '测试连接';
                 });
         }
 
@@ -671,9 +686,12 @@
         }
 
         function clearLogs() {
-            if (!confirm('确定要清空所有日志吗？')) {
-                return;
-            }
+            if (!confirm('确定要清空所有日志吗？')) return;
+
+            var btn = document.getElementById('btnClearLogs');
+            btn.disabled = true;
+            btn.textContent = '清空中...';
+
             fetch('/api/logs', {
                 method: 'DELETE'
             })
@@ -684,6 +702,46 @@
                 })
                 .catch(function () {
                     showToast('清空日志失败', 'error');
+                })
+                .finally(function () {
+                    btn.disabled = false;
+                    btn.textContent = '清空';
+                });
+        }
+
+        function changePassword() {
+            var newPwd = document.getElementById('newPassword').value;
+            var confirmPwd = document.getElementById('confirmPassword').value;
+            if (!newPwd || newPwd.length < 4) {
+                showToast('密码至少4位', 'error');
+                return;
+            }
+            if (newPwd !== confirmPwd) {
+                showToast('两次密码不一致', 'error');
+                return;
+            }
+
+            var btn = document.getElementById('btnChangePassword');
+            btn.disabled = true;
+            btn.textContent = '修改中...';
+
+            fetch('/api/config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminPassword: newPwd })
+            })
+                .then(function (res) { return res.json(); })
+                .then(function () {
+                    showToast('密码修改成功', 'success');
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                })
+                .catch(function () {
+                    showToast('密码修改失败', 'error');
+                })
+                .finally(function () {
+                    btn.disabled = false;
+                    btn.textContent = '修改密码';
                 });
         }
 
@@ -699,33 +757,7 @@
                 .then(function () { window.location.href = '/login'; })
                 .catch(function () { window.location.href = '/login'; });
         };
-
-        document.getElementById('btnChangePassword').onclick = function () {
-            var newPwd = document.getElementById('newPassword').value;
-            var confirmPwd = document.getElementById('confirmPassword').value;
-            if (!newPwd || newPwd.length < 4) {
-                showToast('密码至少4位', 'error');
-                return;
-            }
-            if (newPwd !== confirmPwd) {
-                showToast('两次密码不一致', 'error');
-                return;
-            }
-            fetch('/api/config', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminPassword: newPwd })
-            })
-                .then(function (res) { return res.json(); })
-                .then(function () {
-                    showToast('密码修改成功', 'success');
-                    document.getElementById('newPassword').value = '';
-                    document.getElementById('confirmPassword').value = '';
-                })
-                .catch(function () {
-                    showToast('密码修改失败', 'error');
-                });
-        };
+        document.getElementById('btnChangePassword').onclick = changePassword;
 
         loadConfig();
         loadStatus();
