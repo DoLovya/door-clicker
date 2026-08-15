@@ -21,16 +21,35 @@ door-clicker/
 
 ## 系统架构
 
-```
-┌─────────────┐   HTTP API    ┌──────────────┐   MQTT    ┌─────────────┐   MQTT    ┌─────────┐
-│  Web 浏览器  │ ────────────► │  Web Server  │ ───────► │ MQTT Broker │ ───────► │  ESP8266 │
-│  (phone/pc)  │ ◄──────────── │  (Flask)     │ ◄─────── │  (EMQX等)   │ ◄─────── │         │
-└─────────────┘                └──────────────┘          └─────────────┘          └────┬────┘
-                                                                                        │ GPIO5(D1)
-                                                                                        ▼
-                                                                                   ┌─────────┐
-                                                                                   │  舵机    │
-                                                                                   └─────────┘
+```mermaid
+graph LR
+    subgraph 客户端
+        A[Web 浏览器<br/>phone/pc]
+    end
+
+    subgraph 服务端
+        B[Web Server<br/>Flask]
+    end
+
+    subgraph MQTT基础设施
+        C[MQTT Broker<br/>EMQX等]
+    end
+
+    subgraph 硬件设备
+        D[ESP8266<br/>Huzzah]
+        E[舵机<br/>SG90/MG996R]
+    end
+
+    A -- "HTTP API" --> B
+    B -- "MQTT" --> C
+    C -- "MQTT" --> D
+    D -- "GPIO5 (D1)" --> E
+
+    style A fill:#e3f2fd
+    style B fill:#e8f5e9
+    style C fill:#fff3e0
+    style D fill:#fce4ec
+    style E fill:#fce4ec
 ```
 
 **数据流说明：**
