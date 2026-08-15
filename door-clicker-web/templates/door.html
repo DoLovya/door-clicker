@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Door Clicker</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        .status-bar {
+            position: fixed;
+            top: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #bbb;
+            transition: background 0.3s;
+        }
+
+        .status-dot.connected {
+            background: #4CAF50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+        }
+
+        .door-btn {
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #4CAF50, #2E7D32);
+            border: 6px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            cursor: pointer;
+            box-shadow:
+                0 10px 40px rgba(76, 175, 80, 0.4),
+                inset 0 2px 10px rgba(255, 255, 255, 0.2),
+                inset 0 -4px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.15s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .door-btn:active {
+            transform: scale(0.95);
+            box-shadow:
+                0 5px 20px rgba(76, 175, 80, 0.3),
+                inset 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .door-btn.pressed {
+            background: linear-gradient(145deg, #45a049, #1B5E20);
+        }
+
+        .door-btn .label {
+            position: relative;
+            z-index: 2;
+        }
+
+        .door-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.4s, height 0.4s;
+        }
+
+        .door-btn:active::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+        }
+
+        .footer a {
+            color: rgba(255, 255, 255, 0.4);
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .footer a:hover {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .toast {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success { background: #52c41a; }
+        .toast.error { background: #ff4d4f; }
+        .toast.info { background: #1677ff; }
+
+        @media (max-height: 600px) {
+            .door-btn {
+                width: 180px;
+                height: 180px;
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="status-bar">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">连接中...</span>
+    </div>
+
+    <button class="door-btn" id="btnOpenDoor">
+        <span class="label">开 门</span>
+    </button>
+
+    <div class="footer">
+        <a href="/config">⚙ 配置</a>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        function showToast(message, type) {
+            var toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show ' + (type || 'info');
+            setTimeout(function () {
+                toast.className = 'toast';
+            }, 2000);
+        }
+
+        function setStatus(connected) {
+            var dot = document.getElementById('statusDot');
+            var text = document.getElementById('statusText');
+            if (connected) {
+                dot.classList.add('connected');
+                text.textContent = '已连接';
+            } else {
+                dot.classList.remove('connected');
+                text.textContent = '未连接';
+            }
+        }
+
+        function loadStatus() {
+            fetch('/api/mqtt/status')
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    setStatus(data.connected);
+                })
+                .catch(function () {
+                    setStatus(false);
+                });
+        }
+
+        document.getElementById('btnOpenDoor').addEventListener('click', function () {
+            var btn = this;
+            btn.classList.add('pressed');
+            showToast('开门指令发送中...', 'info');
+
+            fetch('/api/open/door', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data.error) {
+                        showToast('发送失败: ' + data.error, 'error');
+                    } else {
+                        showToast('✓ 开门指令已发送', 'success');
+                    }
+                })
+                .catch(function () {
+                    showToast('发送失败，请检查网络', 'error');
+                })
+                .finally(function () {
+                    setTimeout(function () {
+                        btn.classList.remove('pressed');
+                    }, 300);
+                });
+        });
+
+        loadStatus();
+        setInterval(loadStatus, 5000);
+    </script>
+</body>
+
+</html>

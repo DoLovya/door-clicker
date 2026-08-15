@@ -49,6 +49,11 @@ def init_mqtt():
 
 @app.route("/")
 def index():
+    return render_template("door.html")
+
+
+@app.route("/config")
+def config_page():
     return render_template("index.html")
 
 
