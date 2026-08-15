@@ -1,5 +1,6 @@
 import json
 import threading
+import time
 
 import paho.mqtt.client as mqtt
 
@@ -111,6 +112,30 @@ class MqttClientManager:
     def is_connected(self):
         return self._connected
 
+    def ensure_connected(self):
+        if self._connected:
+            return {"success": True, "message": "Already connected"}
+        self._log_manager.log_info("MQTT 未连接，正在尝试重连...")
+        return self.reconnect()
+
+    def reconnect(self):
+        self._log_manager.log_info("开始重新连接 MQTT...")
+        if self._client:
+            try:
+                self._client.loop_stop()
+                self._client.disconnect()
+            except Exception:
+                pass
+            self._client = None
+        self._connected = False
+        self._subscribed_topics.clear()
+        result = self.connect()
+        if result["success"]:
+            self._log_manager.log_info("MQTT 重连成功")
+        else:
+            self._log_manager.log_error(f"MQTT 重连失败: {result['message']}")
+        return result
+
     def test_connection(self, timeout=5):
         try:
             config = self._config_manager.get_config()
@@ -157,6 +182,9 @@ class MqttClientManager:
             if connected_event.wait(timeout=timeout):
                 test_client.loop_stop()
                 test_client.disconnect()
+                if result["success"] and not self._connected:
+                    self._log_manager.log_info("测试连接成功，正在重连实际客户端...")
+                    self.ensure_connected()
                 return result
             else:
                 test_client.loop_stop()
@@ -204,6 +232,13 @@ class MqttClientManager:
     def publish_open_door(self):
         try:
             if not self._client or not self._connected:
+                self._log_manager.log_info("开门命令检测到未连接，尝试自动重连...")
+                reconnect_result = self.ensure_connected()
+                if not reconnect_result["success"]:
+                    self._log_manager.log_error(f"开门命令失败: 自动重连失败 - {reconnect_result['message']}")
+                    return {"success": False, "message": f"Not connected: {reconnect_result['message']}"}
+                time.sleep(0.5)
+            if not self._client or not self._connected:
                 self._log_manager.log_error("开门命令失败: MQTT 未连接")
                 return {"success": False, "message": "Not connected to MQTT broker"}
             config = self._config_manager.get_config()
@@ -235,20 +270,17 @@ class MqttClientManager:
             self._config_manager.load_config()
             config = self._config_manager.get_config()
             self._log_manager.log_info(f"新配置: {config['mqttServer']}:{config['mqttPort']}")
-            if was_connected:
-                self._log_manager.log_info("使用新配置重连 MQTT")
-                result = self.connect()
-                if result["success"]:
-                    self._log_manager.log_info("MQTT 重连成功")
-                    return {"success": True, "message": "Config reloaded and reconnected"}
-                else:
-                    self._log_manager.log_error(f"MQTT 重连失败: {result['message']}")
-                    return {
-                        "success": False,
-                        "message": f"Config reloaded but reconnection failed: {result['message']}",
-                    }
-            self._log_manager.log_info("配置已重载（当前未连接）")
-            return {"success": True, "message": "Config reloaded (not connected)"}
+            self._log_manager.log_info("使用新配置重连 MQTT")
+            result = self.connect()
+            if result["success"]:
+                self._log_manager.log_info("MQTT 配置重载并连接成功")
+                return {"success": True, "message": "Config reloaded and connected"}
+            else:
+                self._log_manager.log_error(f"MQTT 配置重载但连接失败: {result['message']}")
+                return {
+                    "success": False,
+                    "message": f"Config reloaded but connection failed: {result['message']}",
+                }
         except Exception as e:
             self._log_manager.log_error(f"配置重载异常: {str(e)}")
             return {"success": False, "message": str(e)}

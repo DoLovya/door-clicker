@@ -352,7 +352,7 @@ class TestMqttClientManager(unittest.TestCase):
 
     @patch('mqtt_client_manager.mqtt.Client')
     @patch('mqtt_client_manager.ConfigManager')
-    def test_publish_open_door_not_connected(self, mock_config_class, mock_client_class):
+    def test_publish_open_door_not_connected_auto_reconnect(self, mock_config_class, mock_client_class):
         mock_config = MagicMock()
         mock_config.get_config.return_value = {
             "mqttServer": "127.0.0.1",
@@ -363,6 +363,39 @@ class TestMqttClientManager(unittest.TestCase):
             "topics": [],
         }
         mock_config_class.return_value = mock_config
+
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        mock_result = MagicMock()
+        mock_result.is_published.return_value = True
+        mock_client.publish.return_value = mock_result
+
+        mgr = MqttClientManager()
+        self.assertFalse(mgr.is_connected())
+        result = mgr.publish_open_door()
+
+        self.assertTrue(result["success"])
+        mock_client.connect.assert_called_once()
+        mock_client.publish.assert_called_once()
+
+    @patch('mqtt_client_manager.mqtt.Client')
+    @patch('mqtt_client_manager.ConfigManager')
+    def test_publish_open_door_reconnect_failure(self, mock_config_class, mock_client_class):
+        mock_config = MagicMock()
+        mock_config.get_config.return_value = {
+            "mqttServer": "127.0.0.1",
+            "mqttPort": 1883,
+            "mqttUsername": "",
+            "mqttPassword": "",
+            "doorTopic": "door/00094E53",
+            "topics": [],
+        }
+        mock_config_class.return_value = mock_config
+
+        mock_client = MagicMock()
+        mock_client.connect.side_effect = Exception("Connection refused")
+        mock_client_class.return_value = mock_client
 
         mgr = MqttClientManager()
         result = mgr.publish_open_door()
@@ -411,11 +444,13 @@ class TestMqttClientManager(unittest.TestCase):
         mock_config_class.return_value = mock_config
 
         mgr = MqttClientManager()
+        self.assertFalse(mgr.is_connected())
         result = mgr.reload_config()
 
         self.assertTrue(result["success"])
-        self.assertIn("not connected", result["message"])
+        self.assertIn("connected", result["message"].lower())
         mock_config.load_config.assert_called_once()
+        self.assertTrue(mgr.is_connected())
 
     @patch('mqtt_client_manager.mqtt.Client')
     @patch('mqtt_client_manager.ConfigManager')

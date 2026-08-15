@@ -147,6 +147,18 @@ def api_test_mqtt():
     return jsonify(result)
 
 
+@app.route("/api/mqtt/reconnect", methods=["POST"])
+@login_required
+def api_reconnect_mqtt():
+    log_manager.log_info("手动触发 MQTT 重连...")
+    result = mqtt_client_manager.reconnect()
+    if result["success"]:
+        log_manager.log_info("MQTT 重连成功")
+    else:
+        log_manager.log_error(f"MQTT 重连失败: {result['message']}")
+    return jsonify(result)
+
+
 @app.route("/api/mqtt/status", methods=["GET"])
 def api_mqtt_status():
     return jsonify({"connected": mqtt_client_manager.is_connected()})
