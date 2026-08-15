@@ -1,0 +1,10 @@
+{
+  "mqttServer": "your-mqtt-broker.example.com",
+  "mqttPort": 1883,
+  "mqttUsername": "",
+  "mqttPassword": "",
+  "doorTopic": "door/DEVICE_ID",
+  "adminUser": "admin",
+  "adminPasswordHash": "",
+  "topics": []
+}

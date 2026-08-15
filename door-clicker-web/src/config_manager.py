@@ -28,7 +28,7 @@ class ConfigManager:
         if hasattr(self, '_initialized'):
             return
         self._initialized = True
-        self._config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        self._config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "config.json")
         self._config = {}
         self.load_config()
 

@@ -23,7 +23,7 @@ jobs:
           pip install -r door-clicker-web/requirements.txt
 
       - name: Run flake8
-        run: flake8 door-clicker-web/
+        run: flake8 door-clicker-web/src/
 
       - name: Run unit tests
-        run: python -m unittest discover -s door-clicker-web -p "*_test.py"
+        run: python -m unittest discover -s door-clicker-web/tests -p "*_test.py"

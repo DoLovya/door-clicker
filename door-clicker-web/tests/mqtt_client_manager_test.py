@@ -4,7 +4,7 @@ import sys
 import unittest
 from unittest.mock import MagicMock, PropertyMock, patch
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
 from mqtt_client_manager import MqttClientManager
 
@@ -617,5 +617,5 @@ class TestMqttClientManager(unittest.TestCase):
         self.assertIn("topic/3", mgr.get_subscribed_topics())
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

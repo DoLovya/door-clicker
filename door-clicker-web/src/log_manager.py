@@ -28,7 +28,7 @@ class LogManager:
         self._initialized = True
         self._logs = deque(maxlen=500)
         self._log_lock = threading.Lock()
-        self._log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+        self._log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "logs")
         self._log_file = os.path.join(self._log_dir, "door_clicker.log")
         self._file_lock = threading.Lock()
         self._init_log_dir()

@@ -1,7 +1,11 @@
 import hashlib
 import json
+import os
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
 import app as app_module
 import auth
