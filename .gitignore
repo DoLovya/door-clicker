@@ -25,5 +25,6 @@ door-clicker-web/myenv/
 # Sensitive files - DO NOT commit
 door-clicker-web/data/config.json
 door-clicker-web/data/logs/
+door-clicker-web/logs/
 door-clicker-web/data/*.log
 door-clicker-firmware/data/config.json
