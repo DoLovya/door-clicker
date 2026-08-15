@@ -168,14 +168,18 @@ class MqttClientManager:
     def subscribe_topic(self, topic):
         try:
             if not self._client or not self._connected:
+                self._log_manager.log_error(f"订阅失败: MQTT 未连接")
                 return {"success": False, "message": "Not connected to MQTT broker"}
             result = self._client.subscribe(topic)
             if result[0] == 0:
                 self._subscribed_topics.add(topic)
+                self._log_manager.log_info(f"已订阅主题: {topic}")
                 return {"success": True, "message": f"Subscribed to {topic}"}
             else:
+                self._log_manager.log_error(f"订阅失败: {topic}, 错误码: {result[0]}")
                 return {"success": False, "message": f"Subscribe failed with code: {result[0]}"}
         except Exception as e:
+            self._log_manager.log_error(f"订阅异常: {str(e)}")
             return {"success": False, "message": str(e)}
 
     def unsubscribe_topic(self, topic):
@@ -185,10 +189,13 @@ class MqttClientManager:
             result = self._client.unsubscribe(topic)
             if result[0] == 0:
                 self._subscribed_topics.discard(topic)
+                self._log_manager.log_info(f"已取消订阅: {topic}")
                 return {"success": True, "message": f"Unsubscribed from {topic}"}
             else:
+                self._log_manager.log_error(f"取消订阅失败: {topic}, 错误码: {result[0]}")
                 return {"success": False, "message": f"Unsubscribe failed with code: {result[0]}"}
         except Exception as e:
+            self._log_manager.log_error(f"取消订阅异常: {str(e)}")
             return {"success": False, "message": str(e)}
 
     def get_subscribed_topics(self):
@@ -220,19 +227,28 @@ class MqttClientManager:
 
     def reload_config(self):
         try:
+            self._log_manager.log_info("开始重载 MQTT 配置...")
             was_connected = self._connected
             if was_connected:
+                self._log_manager.log_info("断开当前 MQTT 连接")
                 self.disconnect()
             self._config_manager.load_config()
+            config = self._config_manager.get_config()
+            self._log_manager.log_info(f"新配置: {config['mqttServer']}:{config['mqttPort']}")
             if was_connected:
+                self._log_manager.log_info("使用新配置重连 MQTT")
                 result = self.connect()
                 if result["success"]:
+                    self._log_manager.log_info("MQTT 重连成功")
                     return {"success": True, "message": "Config reloaded and reconnected"}
                 else:
+                    self._log_manager.log_error(f"MQTT 重连失败: {result['message']}")
                     return {
                         "success": False,
                         "message": f"Config reloaded but reconnection failed: {result['message']}",
                     }
+            self._log_manager.log_info("配置已重载（当前未连接）")
             return {"success": True, "message": "Config reloaded (not connected)"}
         except Exception as e:
+            self._log_manager.log_error(f"配置重载异常: {str(e)}")
             return {"success": False, "message": str(e)}

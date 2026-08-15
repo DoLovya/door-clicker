@@ -5,9 +5,13 @@ from functools import wraps
 
 from flask import jsonify, redirect, render_template, request, session
 
+from log_manager import LogManager
+
 
 SESSION_TIMEOUT = 3600
 DEFAULT_ADMIN_PASSWORD = "admin"
+
+log_manager = LogManager()
 
 
 def _hash_password(password):
@@ -89,13 +93,17 @@ def init_auth(app, config_manager):
             session["authenticated"] = True
             session["username"] = username
             session["login_time"] = time.time()
+            log_manager.log_info(f"用户登录成功: {username}")
             return jsonify({"success": True})
 
+        log_manager.log_error(f"用户登录失败: {username}")
         return jsonify({"error": "Invalid username or password"}), 401
 
     @app.route("/api/auth/logout", methods=["POST"])
     def api_logout():
+        username = session.get("username", "unknown")
         session.clear()
+        log_manager.log_info(f"用户登出: {username}")
         return jsonify({"success": True})
 
     @app.route("/api/auth/status", methods=["GET"])

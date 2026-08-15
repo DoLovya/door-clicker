@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from flask import Flask, jsonify, render_template, request
 
@@ -10,6 +11,9 @@ from auth import init_auth, login_required
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -18,16 +22,19 @@ app = Flask(__name__)
 
 @app.errorhandler(400)
 def bad_request(error):
+    log_manager.log_error(f"400 Bad Request: {request.path} - {request.get_data(as_text=True)}")
     return jsonify({"error": "Bad Request"}), 400
 
 
 @app.errorhandler(404)
 def not_found(error):
+    log_manager.log_error(f"404 Not Found: {request.path}")
     return jsonify({"error": "Not Found"}), 404
 
 
 @app.errorhandler(500)
 def internal_server_error(error):
+    log_manager.log_error(f"500 Internal Server Error: {request.path} - {str(error)}")
     return jsonify({"error": "Internal Server Error"}), 500
 
 
@@ -40,14 +47,17 @@ init_auth(app, config_manager)
 
 def init_mqtt():
     logger.info("Initializing MQTT connection...")
+    log_manager.log_info("正在初始化 MQTT 连接...")
     config = config_manager.get_config()
     logger.info("MQTT Server: %s:%d", config["mqttServer"], config["mqttPort"])
 
     result = mqtt_client_manager.connect()
     if result["success"]:
         logger.info("MQTT connected successfully")
+        log_manager.log_info(f"MQTT 连接成功 {config['mqttServer']}:{config['mqttPort']}")
     else:
         logger.warning("MQTT connection failed: %s", result["message"])
+        log_manager.log_error(f"MQTT 连接失败: {result['message']}")
 
 
 @app.route("/")
@@ -63,9 +73,12 @@ def config_page():
 
 @app.route("/api/open/door", methods=["POST"])
 def api_open_door():
+    log_manager.log_info("收到开门请求")
     result = mqtt_client_manager.publish_open_door()
     if result["success"]:
+        log_manager.log_info("开门指令发送成功")
         return jsonify([{"angle": 90, "duration": 200}, {"angle": 0, "duration": 200}])
+    log_manager.log_error(f"开门指令发送失败: {result['message']}")
     return jsonify({"error": result["message"]}), 500
 
 
@@ -108,9 +121,13 @@ def api_update_config():
         new_hash = hashlib.sha256(data["adminPassword"].encode("utf-8")).hexdigest()
         data["adminPasswordHash"] = new_hash
         del data["adminPassword"]
+        log_manager.log_info("管理员密码已修改")
 
     config = config_manager.update_config(data)
+    log_manager.log_info(f"配置已更新: mqttServer={data.get('mqttServer', '未变')}, doorTopic={data.get('doorTopic', '未变')}")
+
     reload_result = mqtt_client_manager.reload_config()
+    log_manager.log_info(f"MQTT 配置重载: {'成功' if reload_result['success'] else '失败 - ' + reload_result['message']}")
 
     return jsonify({
         "config": config,
@@ -121,7 +138,12 @@ def api_update_config():
 @app.route("/api/mqtt/test", methods=["POST"])
 @login_required
 def api_test_mqtt():
+    log_manager.log_info("测试 MQTT 连接...")
     result = mqtt_client_manager.test_connection()
+    if result["success"]:
+        log_manager.log_info("MQTT 连接测试成功")
+    else:
+        log_manager.log_error(f"MQTT 连接测试失败: {result['message']}")
     return jsonify(result)
 
 
@@ -183,11 +205,17 @@ def api_get_logs():
 @login_required
 def api_clear_logs():
     log_manager.clear_logs()
+    log_manager.log_info("日志已清空")
     return jsonify({"success": True, "message": "日志已清空"})
 
 
 if __name__ == "__main__":
     logger.info("Starting Door Clicker Web server...")
+    log_manager.log_info("=" * 50)
+    log_manager.log_info("Door Clicker Web 服务启动")
+    log_manager.log_info(f"日志文件路径: {log_manager.get_log_file_path()}")
+    log_manager.log_info("=" * 50)
     init_mqtt()
     logger.info("Server running on http://0.0.0.0:8080")
+    log_manager.log_info("Web 服务已启动，监听端口 8080")
     app.run(host="0.0.0.0", port=8080)
