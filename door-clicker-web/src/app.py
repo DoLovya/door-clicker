@@ -161,7 +161,27 @@ def api_reconnect_mqtt():
 
 @app.route("/api/mqtt/status", methods=["GET"])
 def api_mqtt_status():
-    return jsonify({"connected": mqtt_client_manager.is_connected()})
+    device_status = mqtt_client_manager.get_device_status()
+    return jsonify({
+        "connected": mqtt_client_manager.is_connected(),
+        "deviceOnline": device_status["deviceOnline"],
+        "deviceStatus": device_status["status"],
+        "lastHeartbeat": device_status["lastHeartbeat"],
+    })
+
+
+@app.route("/api/device/status", methods=["GET"])
+def api_device_status():
+    status = mqtt_client_manager.get_device_status()
+    return jsonify(status)
+
+
+@app.route("/api/device/reset", methods=["POST"])
+@login_required
+def api_reset_device_status():
+    mqtt_client_manager.reset_device_status()
+    log_manager.log_info("手动重置设备状态")
+    return jsonify({"success": True, "message": "设备状态已重置"})
 
 
 @app.route("/api/topics", methods=["GET"])

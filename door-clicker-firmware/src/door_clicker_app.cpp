@@ -12,6 +12,7 @@ namespace
   const char *kLogTagWifi = "WIFI";
   const char *kLogTagMqtt = "MQTT";
   const char *kLogTagCmd = "CMD";
+  const char *kLogTagHeartbeat = "HEARTBEAT";
 
   String wifiStatusToString(wl_status_t status)
   {
@@ -84,6 +85,7 @@ void DoorClickerApp::setup()
   snprintf(chipBuf, sizeof(chipBuf), "%08X", chipId);
   mqttClientId_ = String("door_") + chipBuf;
   mqttTopic_ = String("door/") + chipBuf;
+  mqttStatusTopic_ = mqttTopic_ + "/status";
 
   Logger::info(kLogTagBoot, "wifiSsid", cfg.wifiSsid);
   Logger::info(kLogTagBoot, "mqttServer", cfg.mqttServer);
@@ -137,6 +139,13 @@ void DoorClickerApp::loop()
   else
   {
     mqttClient_.loop();
+
+    unsigned long now = millis();
+    if (now - lastHeartbeatMs_ >= kHeartbeatIntervalMs)
+    {
+      lastHeartbeatMs_ = now;
+      publishHeartbeat();
+    }
   }
 }
 
@@ -301,6 +310,7 @@ bool DoorClickerApp::tryConnectMqtt()
     Logger::info(kLogTagMqtt, "MQTT connected");
     mqttClient_.subscribe(mqttTopic_.c_str());
     Logger::info(kLogTagMqtt, "subscribed topic", mqttTopic_);
+    publishConnectedEvent();
     return true;
   }
   else
@@ -331,5 +341,42 @@ void DoorClickerApp::handleMqttMessage(char *topic, byte *payload, unsigned int 
   else if (msg.type == MqttCmdType::Rotate)
   {
     servoController_.execute(msg.commands);
+  }
+}
+
+void DoorClickerApp::publishHeartbeat()
+{
+  char buf[128];
+  unsigned long uptime = millis() / 1000;
+  snprintf(buf, sizeof(buf),
+           "{\"event\":\"heartbeat\",\"clientId\":\"%s\",\"uptime\":%lu}",
+           mqttClientId_.c_str(), uptime);
+
+  bool ok = mqttClient_.publish(mqttStatusTopic_.c_str(), buf);
+  if (ok)
+  {
+    Logger::info(kLogTagHeartbeat, "heartbeat published", String(uptime));
+  }
+  else
+  {
+    Logger::warn(kLogTagHeartbeat, "heartbeat publish failed");
+  }
+}
+
+void DoorClickerApp::publishConnectedEvent()
+{
+  char buf[128];
+  snprintf(buf, sizeof(buf),
+           "{\"event\":\"connected\",\"clientId\":\"%s\"}",
+           mqttClientId_.c_str());
+
+  bool ok = mqttClient_.publish(mqttStatusTopic_.c_str(), buf);
+  if (ok)
+  {
+    Logger::info(kLogTagHeartbeat, "connected event published");
+  }
+  else
+  {
+    Logger::warn(kLogTagHeartbeat, "connected event publish failed");
   }
 }

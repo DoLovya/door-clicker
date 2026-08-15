@@ -5,7 +5,7 @@
 | 主题 | 方向 | 说明 |
 |------|------|------|
 | `door/{device_id}` | 订阅 ↓ | 接收所有指令 |
-| `door/{device_id}/status` | 发布 ↑ | 设备上报状态 |
+| `door/{device_id}/status` | 发布 ↑ | 设备上报状态（心跳、上线、执行结果） |
 
 > `{device_id}` 由 ESP8266 Chip ID 自动生成，格式: `door_{HEX}`
 > 例如: `door_3FF12345`
@@ -89,7 +89,46 @@
 
 ## 3. 状态上报 (status)
 
-**主题**: `door/3FF12345/status`
+**主题**: `door/{device_id}/status`
+
+### 3.1 心跳消息
+
+设备每 30 秒发布一次心跳消息，用于证明设备在线。
+
+**Payload**:
+```json
+{
+  "event": "heartbeat",
+  "clientId": "door_3FF12345",
+  "uptime": 3600
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `event` | string | 固定 `"heartbeat"` |
+| `clientId` | string | 设备 MQTT 客户端 ID |
+| `uptime` | uint32 | 设备运行时间（秒） |
+
+### 3.2 上线事件
+
+MQTT 连接成功后立即发布。
+
+**Payload**:
+```json
+{
+  "event": "connected",
+  "clientId": "door_3FF12345"
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `event` | string | 固定 `"connected"` |
+| `clientId` | string | 设备 MQTT 客户端 ID |
+
+### 3.3 执行结果
+
 **Payload**:
 ```json
 {
@@ -104,8 +143,20 @@
 | event 值 | 触发时机 |
 |----------|---------|
 | `connected` | MQTT 连接成功 |
+| `heartbeat` | 每 30 秒定期上报 |
 | `init` | 舵机初始化完成 |
 | `rotate_done` | 旋转动作序列完成 |
+
+### 3.4 在线/离线判定规则
+
+| 条件 | 判定结果 |
+|------|---------|
+| Web 端 90 秒内收到心跳 | 设备 **在线** |
+| Web 端超过 90 秒未收到心跳 | 设备 **离线** |
+| MQTT 连接断开 | 设备状态 **未知** |
+| 从未收到过心跳 | 设备状态 **未知** |
+
+> 心跳间隔 30 秒，超时判定使用 3 倍间隔（90 秒），容忍偶发网络抖动。
 
 ---
 
@@ -120,3 +171,4 @@
 | `speed` | int | 1-100 | 旋转速度（数值越大越快） |
 | `delay` | int | ≥0 | 停留延时 (ms) |
 | `duration` | int | ≥0 | 每个动作的持续时间 (ms) |
+| `uptime` | uint32 | ≥0 | 设备运行时间（秒），心跳消息中上报 |

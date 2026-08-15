@@ -189,6 +189,7 @@ class TestMqttClientManager(unittest.TestCase):
             "mqttPort": 1883,
             "mqttUsername": "",
             "mqttPassword": "",
+            "doorTopic": "door/test",
             "topics": [],
         }
         mock_config_class.return_value = mock_config
@@ -203,7 +204,10 @@ class TestMqttClientManager(unittest.TestCase):
 
         self.assertTrue(result["success"])
         self.assertIn("test/topic", mgr.get_subscribed_topics())
-        mock_client.subscribe.assert_called_once_with("test/topic")
+        # 设备状态topic + test/topic = 2次订阅
+        self.assertEqual(mock_client.subscribe.call_count, 2)
+        mock_client.subscribe.assert_any_call("door/test/status")
+        mock_client.subscribe.assert_any_call("test/topic")
 
     @patch('mqtt_client_manager.mqtt.Client')
     @patch('mqtt_client_manager.ConfigManager')
@@ -295,6 +299,7 @@ class TestMqttClientManager(unittest.TestCase):
             "mqttPort": 1883,
             "mqttUsername": "",
             "mqttPassword": "",
+            "doorTopic": "door/test",
             "topics": [],
         }
         mock_config_class.return_value = mock_config
@@ -309,9 +314,11 @@ class TestMqttClientManager(unittest.TestCase):
         mgr.subscribe_topic("topic/b")
 
         topics = mgr.get_subscribed_topics()
-        self.assertEqual(len(topics), 2)
+        # 包含自动订阅的状态topic + 2个手动订阅 = 3
+        self.assertEqual(len(topics), 3)
         self.assertIn("topic/a", topics)
         self.assertIn("topic/b", topics)
+        self.assertIn("door/test/status", topics)
 
     @patch('mqtt_client_manager.mqtt.Client')
     @patch('mqtt_client_manager.ConfigManager')
@@ -628,6 +635,7 @@ class TestMqttClientManager(unittest.TestCase):
             "mqttPort": 1883,
             "mqttUsername": "",
             "mqttPassword": "",
+            "doorTopic": "door/test",
             "topics": [],
         }
         mock_config_class.return_value = mock_config
@@ -643,13 +651,277 @@ class TestMqttClientManager(unittest.TestCase):
         mgr.subscribe_topic("topic/1")
         mgr.subscribe_topic("topic/2")
         mgr.subscribe_topic("topic/3")
-        self.assertEqual(len(mgr.get_subscribed_topics()), 3)
+        # 3个手动订阅 + 1个自动状态topic = 4
+        self.assertEqual(len(mgr.get_subscribed_topics()), 4)
 
         mgr.unsubscribe_topic("topic/2")
-        self.assertEqual(len(mgr.get_subscribed_topics()), 2)
+        # 2个手动订阅 + 1个自动状态topic = 3
+        self.assertEqual(len(mgr.get_subscribed_topics()), 3)
         self.assertNotIn("topic/2", mgr.get_subscribed_topics())
         self.assertIn("topic/1", mgr.get_subscribed_topics())
         self.assertIn("topic/3", mgr.get_subscribed_topics())
+        self.assertIn("door/test/status", mgr.get_subscribed_topics())
+
+
+    @patch('mqtt_client_manager.mqtt.Client')
+    @patch('mqtt_client_manager.ConfigManager')
+    def test_connect_auto_subscribe_status_topic(self, mock_config_class, mock_client_class):
+        mock_config = MagicMock()
+        mock_config.get_config.return_value = {
+            "mqttServer": "127.0.0.1",
+            "mqttPort": 1883,
+            "mqttUsername": "",
+            "mqttPassword": "",
+            "doorTopic": "door/test",
+            "topics": [],
+        }
+        mock_config_class.return_value = mock_config
+
+        mock_client = MagicMock()
+        mock_client.subscribe.return_value = (0, 1)
+        mock_client_class.return_value = mock_client
+
+        mgr = MqttClientManager()
+        mgr.connect()
+
+        self.assertTrue(mgr.is_connected())
+        self.assertIn("door/test/status", mgr.get_subscribed_topics())
+        mock_client.subscribe.assert_any_call("door/test/status")
+
+    @patch('mqtt_client_manager.mqtt.Client')
+    @patch('mqtt_client_manager.ConfigManager')
+    def test_heartbeat_message_updates_timestamp(self, mock_config_class, mock_client_class):
+        mock_config = MagicMock()
+        mock_config.get_config.return_value = {
+            "mqttServer": "127.0.0.1",
+            "mqttPort": 1883,
+            "mqttUsername": "",
+            "mqttPassword": "",
+            "doorTopic": "door/test",
+            "topics": [],
+        }
+        mock_config_class.return_value = mock_config
+
+        mock_client = MagicMock()
+        mock_client.subscribe.return_value = (0, 1)
+        mock_client_class.return_value = mock_client
+
+        mgr = MqttClientManager()
+        mgr.connect()
+
+        test_msg = MagicMock()
+        test_msg.topic = "door/test/status"
+        test_msg.payload = b'{"event":"heartbeat","clientId":"door_test","uptime":120}'
+
+        mgr._on_message(mock_client, None, test_msg)
+
+        self.assertIsNotNone(mgr._last_heartbeat)
+        self.assertTrue(mgr.is_device_online())
+
+    @patch('mqtt_client_manager.mqtt.Client')
+    @patch('mqtt_client_manager.ConfigManager')
+    def test_connected_event_updates_timestamp(self, mock_config_class, mock_client_class):
+        mock_config = MagicMock()
+        mock_config.get_config.return_value = {
+            "mqttServer": "127.0.0.1",
+            "mqttPort": 1883,
+            "mqttUsername": "",
+            "mqttPassword": "",
+            "doorTopic": "door/test",
+            "topics": [],
+        }
+        mock_config_class.return_value = mock_config
+
+        mock_client = MagicMock()
+        mock_client.subscribe.return_value = (0, 1)
+        mock_client_class.return_value = mock_client
+
+        mgr = MqttClientManager()
+        mgr.connect()
+
+        test_msg = MagicMock()
+        test_msg.topic = "door/test/status"
+        test_msg.payload = b'{"event":"connected","clientId":"door_test"}'
+
+        mgr._on_message(mock_client, None, test_msg)
+
+        self.assertIsNotNone(mgr._last_heartbeat)
+        self.assertTrue(mgr.is_device_online())
+
+    @patch('mqtt_client_manager.mqtt.Client')
+    @patch('mqtt_client_manager.ConfigManager')
+    def test_device_online_within_timeout(self, mock_config_class, mock_client_class):
+        mock_config = MagicMock()
+        mock_config.get_config.return_value = {
+            "mqttServer": "127.0.0.1",
+            "mqttPort": 1883,
+            "mqttUsername": "",
+            "mqttPassword": "",
+            "doorTopic": "door/test",
+            "topics": [],
+        }
+        mock_config_class.return_value = mock_config
+
+        mock_client = MagicMock()
+        mock_client.subscribe.return_value = (0, 1)
+        mock_client_class.return_value = mock_client
+
+        mgr = MqttClientManager()
+        mgr.connect()
+
+        from datetime import datetime, timedelta
+        mgr._last_heartbeat = datetime.now()
+        mgr._device_online = True
+        mgr._last_device_state = "online"
+
+        self.assertTrue(mgr.is_device_online())
+
+    @patch('mqtt_client_manager.mqtt.Client')
+    @patch('mqtt_client_manager.ConfigManager')
+    def test_device_offline_after_timeout(self, mock_config_class, mock_client_class):
+        mock_config = MagicMock()
+        mock_config.get_config.return_value = {
+            "mqttServer": "127.0.0.1",
+            "mqttPort": 1883,
+            "mqttUsername": "",
+            "mqttPassword": "",
+            "doorTopic": "door/test",
+            "topics": [],
+        }
+        mock_config_class.return_value = mock_config
+
+        mock_client = MagicMock()
+        mock_client.subscribe.return_value = (0, 1)
+        mock_client_class.return_value = mock_client
+
+        mgr = MqttClientManager()
+        mgr.connect()
+
+        from datetime import datetime, timedelta
+        mgr._last_heartbeat = datetime.now() - timedelta(seconds=100)
+        mgr._device_online = True
+        mgr._last_device_state = "online"
+
+        self.assertFalse(mgr.is_device_online())
+
+    @patch('mqtt_client_manager.mqtt.Client')
+    @patch('mqtt_client_manager.ConfigManager')
+    def test_disconnect_resets_device_status(self, mock_config_class, mock_client_class):
+        mock_config = MagicMock()
+        mock_config.get_config.return_value = {
+            "mqttServer": "127.0.0.1",
+            "mqttPort": 1883,
+            "mqttUsername": "",
+            "mqttPassword": "",
+            "doorTopic": "door/test",
+            "topics": [],
+        }
+        mock_config_class.return_value = mock_config
+
+        mock_client = MagicMock()
+        mock_client.subscribe.return_value = (0, 1)
+        mock_client_class.return_value = mock_client
+
+        mgr = MqttClientManager()
+        mgr.connect()
+
+        from datetime import datetime
+        mgr._last_heartbeat = datetime.now()
+        mgr._device_online = True
+        mgr._last_device_state = "online"
+
+        mgr._on_disconnect(mock_client, None)
+
+        self.assertIsNone(mgr._last_heartbeat)
+        self.assertFalse(mgr._connected)
+
+        status = mgr.get_device_status()
+        self.assertEqual(status["status"], "unknown")
+        self.assertFalse(status["deviceOnline"])
+
+    @patch('mqtt_client_manager.mqtt.Client')
+    @patch('mqtt_client_manager.ConfigManager')
+    def test_get_device_status_format(self, mock_config_class, mock_client_class):
+        mock_config = MagicMock()
+        mock_config.get_config.return_value = {
+            "mqttServer": "127.0.0.1",
+            "mqttPort": 1883,
+            "mqttUsername": "",
+            "mqttPassword": "",
+            "doorTopic": "door/test",
+            "topics": [],
+        }
+        mock_config_class.return_value = mock_config
+
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        mgr = MqttClientManager()
+
+        status = mgr.get_device_status()
+        self.assertIn("deviceOnline", status)
+        self.assertIn("lastHeartbeat", status)
+        self.assertIn("mqttConnected", status)
+        self.assertIn("status", status)
+        self.assertEqual(status["status"], "unknown")
+        self.assertFalse(status["mqttConnected"])
+
+    @patch('mqtt_client_manager.mqtt.Client')
+    @patch('mqtt_client_manager.ConfigManager')
+    def test_reset_device_status(self, mock_config_class, mock_client_class):
+        mock_config = MagicMock()
+        mock_config.get_config.return_value = {
+            "mqttServer": "127.0.0.1",
+            "mqttPort": 1883,
+            "mqttUsername": "",
+            "mqttPassword": "",
+            "doorTopic": "door/test",
+            "topics": [],
+        }
+        mock_config_class.return_value = mock_config
+
+        mgr = MqttClientManager()
+
+        from datetime import datetime
+        mgr._last_heartbeat = datetime.now()
+        mgr._device_online = True
+        mgr._last_device_state = "online"
+
+        mgr.reset_device_status()
+
+        self.assertIsNone(mgr._last_heartbeat)
+        self.assertIsNone(mgr._last_device_state)
+        self.assertFalse(mgr._device_online)
+
+    @patch('mqtt_client_manager.mqtt.Client')
+    @patch('mqtt_client_manager.ConfigManager')
+    def test_invalid_message_no_status_change(self, mock_config_class, mock_client_class):
+        mock_config = MagicMock()
+        mock_config.get_config.return_value = {
+            "mqttServer": "127.0.0.1",
+            "mqttPort": 1883,
+            "mqttUsername": "",
+            "mqttPassword": "",
+            "doorTopic": "door/test",
+            "topics": [],
+        }
+        mock_config_class.return_value = mock_config
+
+        mock_client = MagicMock()
+        mock_client.subscribe.return_value = (0, 1)
+        mock_client_class.return_value = mock_client
+
+        mgr = MqttClientManager()
+        mgr.connect()
+
+        test_msg = MagicMock()
+        test_msg.topic = "door/test/status"
+        test_msg.payload = b'invalid json'
+
+        mgr._on_message(mock_client, None, test_msg)
+
+        self.assertIsNone(mgr._last_heartbeat)
+        self.assertFalse(mgr.is_device_online())
 
 
 if __name__ == '__main__':

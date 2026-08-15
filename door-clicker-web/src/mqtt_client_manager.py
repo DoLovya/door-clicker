@@ -1,6 +1,7 @@
 import json
 import threading
 import time
+from datetime import datetime
 
 import paho.mqtt.client as mqtt
 
@@ -33,6 +34,11 @@ class MqttClientManager:
         self._log_manager = LogManager()
         self._on_message_callback = None
         self._client_id = f"door_clicker_{threading.get_ident()}"
+        self._device_online = False
+        self._last_heartbeat = None
+        self._device_status_topic = None
+        self._last_device_state = None
+        self._DEVICE_OFFLINE_TIMEOUT = 90
 
     @property
     def on_message_callback(self):
@@ -51,24 +57,68 @@ class MqttClientManager:
         if reason_code == 0:
             self._connected = True
             self._log_manager.log_info("MQTT 连接成功")
+            self._subscribe_device_status_topic()
             for topic in self._subscribed_topics:
                 client.subscribe(topic)
         else:
             self._connected = False
             self._log_manager.log_error(f"MQTT 连接失败 (code: {reason_code})")
 
+    def _subscribe_device_status_topic(self):
+        config = self._config_manager.get_config()
+        door_topic = config.get("doorTopic", "door/00094E53")
+        self._device_status_topic = f"{door_topic}/status"
+
+        if self._client and self._connected:
+            result = self._client.subscribe(self._device_status_topic)
+            if result[0] == 0:
+                self._subscribed_topics.add(self._device_status_topic)
+                self._log_manager.log_info(f"已订阅设备状态主题: {self._device_status_topic}")
+            else:
+                self._log_manager.log_error(f"订阅设备状态主题失败: {result[0]}")
+
     def _on_disconnect(self, client, userdata, *args):
         self._connected = False
+        if self._last_device_state is not None:
+            self._check_device_state_change(None)
+        self._last_heartbeat = None
         self._log_manager.log_info("MQTT 连接已断开")
 
     def _on_message(self, client, userdata, msg):
         payload = msg.payload.decode("utf-8", errors="replace")
         self._log_manager.log_receive(msg.topic, payload)
+
+        if self._device_status_topic and msg.topic == self._device_status_topic:
+            self._handle_device_status_message(payload)
+
         if self._on_message_callback:
             try:
                 self._on_message_callback(client, userdata, msg)
             except Exception:
                 pass
+
+    def _handle_device_status_message(self, payload):
+        try:
+            data = json.loads(payload)
+            event = data.get("event", "")
+
+            if event in ("heartbeat", "connected"):
+                now = datetime.now()
+                self._last_heartbeat = now
+                self._check_device_state_change("online")
+
+        except json.JSONDecodeError:
+            self._log_manager.log_error(f"设备状态消息解析失败: {payload}")
+
+    def _check_device_state_change(self, new_state):
+        if self._last_device_state != new_state:
+            self._last_device_state = new_state
+            if new_state == "online":
+                self._device_online = True
+                self._log_manager.log_info("设备已上线")
+            else:
+                self._device_online = False
+                self._log_manager.log_info("设备已离线")
 
     def connect(self):
         try:
@@ -94,6 +144,7 @@ class MqttClientManager:
             )
             self._client.loop_start()
             self._connected = True
+            self._subscribe_device_status_topic()
             return {"success": True, "message": "Connected successfully"}
         except Exception as e:
             self._log_manager.log_error(f"MQTT 连接异常: {str(e)}")
@@ -111,6 +162,46 @@ class MqttClientManager:
 
     def is_connected(self):
         return self._connected
+
+    def is_device_online(self):
+        if self._last_heartbeat is None:
+            return False
+
+        elapsed = (datetime.now() - self._last_heartbeat).total_seconds()
+        if elapsed <= self._DEVICE_OFFLINE_TIMEOUT:
+            return True
+        else:
+            if self._device_online:
+                self._check_device_state_change("offline")
+            return False
+
+    def get_device_status(self):
+        self._device_online = self.is_device_online()
+
+        last_heartbeat_str = None
+        if self._last_heartbeat:
+            last_heartbeat_str = self._last_heartbeat.strftime("%Y-%m-%d %H:%M:%S")
+
+        if not self._connected:
+            status = "unknown"
+        elif self._device_online:
+            status = "online"
+        elif self._last_heartbeat is None:
+            status = "unknown"
+        else:
+            status = "offline"
+
+        return {
+            "deviceOnline": self._device_online,
+            "lastHeartbeat": last_heartbeat_str,
+            "mqttConnected": self._connected,
+            "status": status,
+        }
+
+    def reset_device_status(self):
+        self._last_heartbeat = None
+        self._last_device_state = None
+        self._device_online = False
 
     def ensure_connected(self):
         if self._connected:
@@ -131,6 +222,7 @@ class MqttClientManager:
         self._subscribed_topics.clear()
         result = self.connect()
         if result["success"]:
+            self._subscribe_device_status_topic()
             self._log_manager.log_info("MQTT 重连成功")
         else:
             self._log_manager.log_error(f"MQTT 重连失败: {result['message']}")

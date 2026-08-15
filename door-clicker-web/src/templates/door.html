@@ -37,9 +37,15 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 8px;
+            gap: 20px;
             font-size: 14px;
             color: rgba(255, 255, 255, 0.7);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .status-dot {
@@ -53,6 +59,40 @@
         .status-dot.connected {
             background: #4CAF50;
             box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+        }
+
+        .status-dot.device-online {
+            background: #2196F3;
+            box-shadow: 0 0 8px rgba(33, 150, 243, 0.6);
+        }
+
+        .status-dot.device-offline {
+            background: #FF9800;
+            box-shadow: 0 0 8px rgba(255, 152, 0, 0.6);
+        }
+
+        .status-dot.device-unknown {
+            background: #bbb;
+        }
+
+        .device-warning {
+            display: none;
+            position: fixed;
+            top: 45%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background: rgba(255, 152, 0, 0.2);
+            border: 1px solid #FF9800;
+            border-radius: 8px;
+            color: #FF9800;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 100;
+        }
+
+        .device-warning.show {
+            display: block;
         }
 
         .door-btn {
@@ -164,13 +204,23 @@
 
 <body>
     <div class="status-bar">
-        <span class="status-dot" id="statusDot"></span>
-        <span id="statusText">连接中...</span>
+        <div class="status-item">
+            <span class="status-dot" id="mqttDot"></span>
+            <span id="mqttText">MQTT 连接中...</span>
+        </div>
+        <div class="status-item">
+            <span class="status-dot" id="deviceDot"></span>
+            <span id="deviceText">设备状态未知</span>
+        </div>
     </div>
 
     <button class="door-btn" id="btnOpenDoor">
         <span class="label">开 门</span>
     </button>
+
+    <div class="device-warning" id="deviceWarning">
+        ⚠ 设备离线，开门指令可能无效
+    </div>
 
     <div class="footer">
         <a href="/config">⚙ 配置</a>
@@ -188,15 +238,37 @@
             }, 2000);
         }
 
-        function setStatus(connected) {
-            var dot = document.getElementById('statusDot');
-            var text = document.getElementById('statusText');
+        function setMqttStatus(connected) {
+            var dot = document.getElementById('mqttDot');
+            var text = document.getElementById('mqttText');
             if (connected) {
                 dot.classList.add('connected');
-                text.textContent = '已连接';
+                text.textContent = 'MQTT 已连接';
             } else {
                 dot.classList.remove('connected');
-                text.textContent = '未连接';
+                text.textContent = 'MQTT 未连接';
+            }
+        }
+
+        function setDeviceStatus(status) {
+            var dot = document.getElementById('deviceDot');
+            var text = document.getElementById('deviceText');
+            var warning = document.getElementById('deviceWarning');
+
+            dot.classList.remove('device-online', 'device-offline', 'device-unknown');
+
+            if (status === 'online') {
+                dot.classList.add('device-online');
+                text.textContent = '设备在线';
+                warning.classList.remove('show');
+            } else if (status === 'offline') {
+                dot.classList.add('device-offline');
+                text.textContent = '设备离线';
+                warning.classList.add('show');
+            } else {
+                dot.classList.add('device-unknown');
+                text.textContent = '设备状态未知';
+                warning.classList.remove('show');
             }
         }
 
@@ -204,10 +276,14 @@
             fetch('/api/mqtt/status')
                 .then(function (res) { return res.json(); })
                 .then(function (data) {
-                    setStatus(data.connected);
+                    setMqttStatus(data.connected);
+                    if (data.deviceStatus) {
+                        setDeviceStatus(data.deviceStatus);
+                    }
                 })
                 .catch(function () {
-                    setStatus(false);
+                    setMqttStatus(false);
+                    setDeviceStatus('unknown');
                 });
         }
 

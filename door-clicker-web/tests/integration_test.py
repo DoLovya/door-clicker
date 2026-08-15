@@ -44,6 +44,13 @@ class TestIntegration(unittest.TestCase):
         self.mock_mqtt.unsubscribe_topic.return_value = {
             "success": True, "message": "Unsubscribed from topic/test"
         }
+        self.mock_mqtt.get_device_status.return_value = {
+            "deviceOnline": False,
+            "lastHeartbeat": None,
+            "mqttConnected": False,
+            "status": "unknown",
+        }
+        self.mock_mqtt.reset_device_status.return_value = None
 
         self._saved_config = app_module.config_manager
         self._saved_mqtt = app_module.mqtt_client_manager

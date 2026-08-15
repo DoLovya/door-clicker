@@ -44,6 +44,13 @@ class TestApp(unittest.TestCase):
         self.mock_mqtt.reload_config.return_value = {
             "success": True, "message": "Config reloaded and reconnected"
         }
+        self.mock_mqtt.get_device_status.return_value = {
+            "deviceOnline": False,
+            "lastHeartbeat": None,
+            "mqttConnected": True,
+            "status": "unknown",
+        }
+        self.mock_mqtt.reset_device_status.return_value = None
 
         self._saved_config = app_module.config_manager
         self._saved_mqtt = app_module.mqtt_client_manager

@@ -1,0 +1,14 @@
+- [x] Checkpoint 1: 固件在 MQTT 连接成功后每 30 秒发布心跳消息到 status topic
+- [x] Checkpoint 2: 固件在 MQTT 连接成功时立即发布 connected 事件
+- [x] Checkpoint 3: Web 端 MQTT 连接成功后自动订阅 {doorTopic}/status topic
+- [x] Checkpoint 4: Web 端收到心跳消息后正确更新设备最后心跳时间戳
+- [x] Checkpoint 5: is_device_online() 在 90 秒内有心跳时返回 True
+- [x] Checkpoint 6: is_device_online() 超过 90 秒无心跳时返回 False
+- [x] Checkpoint 7: MQTT 断开时设备状态重置为未知
+- [x] Checkpoint 8: GET /api/device/status 返回正确的 JSON 格式和值
+- [x] Checkpoint 9: 开门页面显示 MQTT 状态和设备状态两个独立指示器
+- [x] Checkpoint 10: 设备离线时开门按钮下方显示警告文字
+- [x] Checkpoint 11: 状态变更事件（上线/离线）记录到日志
+- [x] Checkpoint 12: 心跳发布失败不影响固件主循环和开门功能
+- [x] Checkpoint 13: MQTT 协议文档已更新心跳消息格式和判定规则
+- [x] Checkpoint 14: 所有单元测试和集成测试通过
