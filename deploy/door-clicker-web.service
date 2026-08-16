@@ -1,0 +1,19 @@
+[Unit]
+Description=Door Clicker Web Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/door-clicker/door-clicker-web/src
+ExecStart=/opt/door-clicker/door-clicker-web/venv/bin/python app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+Environment=FLASK_ENV=production
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

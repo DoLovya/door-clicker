@@ -1,0 +1,177 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install flake8
+          pip install -r door-clicker-web/requirements.txt
+
+      - name: Run flake8 lint
+        run: flake8 door-clicker-web/src/
+
+      - name: Run unit tests
+        run: python -m unittest discover -s door-clicker-web/tests -p "*_test.py"
+
+      - name: Test SSH connection
+        if: success()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            echo "SSH 连接成功"
+            echo "主机名: $(hostname)"
+            echo "操作系统: $(cat /etc/os-release 2>/dev/null | head -1 || uname -a)"
+            echo "Python: $(which python3 2>/dev/null || echo '未安装')"
+            echo "Git: $(which git 2>/dev/null || echo '未安装')"
+            echo "代理检测:"
+            curl -s --connect-timeout 3 http://127.0.0.1:7890 > /dev/null 2>&1 && echo "  127.0.0.1:7890 可用" || echo "  127.0.0.1:7890 不可用"
+
+      - name: Deploy to Server via SSH
+        if: success()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          command_timeout: 10m
+          script: |
+            echo "===== 部署开始 ====="
+            
+            # 代理
+            if curl -s --connect-timeout 3 http://127.0.0.1:7890 > /dev/null 2>&1; then
+              export http_proxy=http://127.0.0.1:7890
+              export https_proxy=http://127.0.0.1:7890
+              echo "[代理] 已启用"
+            else
+              echo "[代理] 未启用"
+            fi
+            export no_proxy=localhost,127.0.0.1
+            
+            # 拉取代码
+            APP_DIR="/opt/door-clicker"
+            WEB_DIR="$APP_DIR/door-clicker-web"
+            if [ ! -d "$APP_DIR/.git" ]; then
+              echo "[代码] 克隆..."
+              cd /opt && rm -rf door-clicker
+              git clone https://github.com/DoLovya/door-clicker.git
+            else
+              echo "[代码] 更新..."
+              cd "$APP_DIR"
+              git fetch origin
+              git reset --hard origin/main
+              git clean -fd
+            fi
+            echo "[代码] 完成"
+            
+            # Python 环境
+            echo "[Python] 检查..."
+            PYTHON=$(command -v python3.11 || command -v python3.10 || command -v python3.9 || command -v python3)
+            if [ -z "$PYTHON" ]; then
+              echo "[Python] 安装..."
+              if command -v yum &>/dev/null; then
+                yum install -y python3 python3-pip
+              elif command -v apt-get &>/dev/null; then
+                apt-get update && apt-get install -y python3 python3-pip
+              fi
+              PYTHON=$(command -v python3)
+            fi
+            echo "[Python] $PYTHON"
+            $PYTHON --version
+            
+            # 虚拟环境
+            echo "[虚拟环境] 创建..."
+            cd "$WEB_DIR"
+            rm -rf venv
+            $PYTHON -m venv venv
+            source venv/bin/activate
+            
+            # 依赖
+            echo "[依赖] 安装..."
+            pip install --upgrade pip -i https://pypi.org/simple/ -q
+            pip install -r requirements.txt -i https://pypi.org/simple/
+            echo "[依赖] 完成"
+            
+            # 测试应用启动
+            echo "[测试] 验证应用可以启动..."
+            cd "$WEB_DIR/src"
+            timeout 5 python app.py &
+            APP_PID=$!
+            sleep 3
+            kill $APP_PID 2>/dev/null
+            wait $APP_PID 2>/dev/null
+            echo "[测试] 应用启动测试完成"
+            
+            # 检查服务用户
+            echo "[用户] 检查..."
+            if ! id door-clicker &>/dev/null; then
+              useradd -r -s /bin/false door-clicker 2>/dev/null || echo "[警告] 无法创建用户，使用 root"
+            fi
+            echo "[用户] 检查完成"
+            
+            # 配置服务
+            echo "[服务] 配置..."
+            mkdir -p "$WEB_DIR/data/logs"
+            if [ -f "$APP_DIR/deploy/door-clicker-web.service" ]; then
+              cp "$APP_DIR/deploy/door-clicker-web.service" /etc/systemd/system/
+              systemctl daemon-reload
+              echo "[服务] systemd 配置完成"
+            else
+              echo "[服务] 未找到 service 文件"
+            fi
+            chown -R door-clicker:door-clicker "$WEB_DIR" 2>/dev/null || chown -R root:root "$WEB_DIR" 2>/dev/null || true
+            chmod -R 755 "$WEB_DIR/data" 2>/dev/null || true
+            echo "[服务] 权限设置完成"
+            
+            # 重启服务
+            echo "[服务] 重启..."
+            systemctl restart door-clicker-web
+            sleep 3
+            
+            if systemctl is-active --quiet door-clicker-web; then
+              echo "===== 部署成功 ====="
+            else
+              echo "ERROR: 服务启动失败"
+              echo "--- 服务日志 ---"
+              journalctl -u door-clicker-web -n 30 --no-pager 2>/dev/null
+              echo "--- 目录权限 ---"
+              ls -la "$WEB_DIR/"
+              echo "--- 虚拟环境 ---"
+              ls -la "$WEB_DIR/venv/bin/python*" 2>/dev/null
+              exit 1
+            fi
+
+      - name: Verify deployment
+        if: success()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            systemctl is-active --quiet door-clicker-web || exit 1
+            echo "✓ 部署成功，服务运行正常"
+            curl -sf http://localhost:${{ secrets.APP_PORT || 5000 }}/ > /dev/null || echo "⚠ Web服务可能需要更多时间启动"

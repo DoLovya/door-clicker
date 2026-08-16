@@ -28,3 +28,7 @@ door-clicker-web/data/logs/
 door-clicker-web/logs/
 door-clicker-web/data/*.log
 door-clicker-firmware/data/config.json
+
+# Deploy - local secrets
+deploy/ssh-key
+deploy/*.log
