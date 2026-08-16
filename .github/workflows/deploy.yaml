@@ -145,6 +145,26 @@ jobs:
             chmod -R 755 "$WEB_DIR/data" 2>/dev/null || true
             echo "[服务] 权限设置完成"
             
+            # 同步 Nginx 配置
+            echo "[Nginx] 配置..."
+            if command -v nginx &>/dev/null && [ -f "$APP_DIR/deploy/nginx.conf" ]; then
+              # 备份旧配置
+              NGINX_CONF="/etc/nginx/conf.d/door-clicker.conf"
+              cp "$NGINX_CONF" "${NGINX_CONF}.bak.$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
+              
+              # 复制新配置
+              cp "$APP_DIR/deploy/nginx.conf" "$NGINX_CONF"
+              
+              # 移除默认站点冲突
+              rm -f /etc/nginx/sites-enabled/default 2>/dev/null
+              
+              # 测试并重载
+              nginx -t 2>/dev/null && systemctl reload nginx 2>/dev/null || systemctl restart nginx 2>/dev/null
+              echo "[Nginx] 配置同步完成"
+            else
+              echo "[Nginx] 跳过（未安装或无配置文件）"
+            fi
+            
             # 重启服务
             echo "[服务] 重启..."
             systemctl restart door-clicker-web
