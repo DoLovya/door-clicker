@@ -353,9 +353,9 @@ class TestMqttClientManager(unittest.TestCase):
         payload = json.loads(call_args[0][1])
         self.assertEqual(len(payload), 2)
         self.assertEqual(payload[0]["angle"], 90)
-        self.assertEqual(payload[0]["duration"], 200)
+        self.assertEqual(payload[0]["duration"], 500)
         self.assertEqual(payload[1]["angle"], 0)
-        self.assertEqual(payload[1]["duration"], 200)
+        self.assertEqual(payload[1]["duration"], 500)
 
     @patch('mqtt_client_manager.mqtt.Client')
     @patch('mqtt_client_manager.ConfigManager')

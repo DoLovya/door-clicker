@@ -133,10 +133,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 </div>
 </div>
 </div>
+<div class="card">
+<div class="card-title">舵机</div>
+<div class="field">
+<label>GPIO 引脚</label>
+)HTML");
+    _srv->sendContent("<input name=\"servoPin\" type=\"number\" min=\"0\" max=\"17\" value=\"" + String(cfg.servoPin) + "\" placeholder=\"2 (D4)\">");
+    _srv->sendContent(R"HTML(
+</div>
+</div>
 <button type="submit" class="btn">保存并重启设备</button>
 </form>
 <div class="card">
-<div class="card-title">舵机测试 (GPIO5)</div>
+<div class="card-title">舵机测试</div>
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+<label style="font-size:13px;color:#555">GPIO 引脚:</label>
+<input id="servoPinTest" type="number" min="0" max="17" value=")HTML");
+    _srv->sendContent(String(cfg.servoPin));
+    _srv->sendContent(R"HTML(" style="width:80px;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:14px">
+</div>
 <p style="font-size:12px;color:#888;margin-bottom:12px">点击按钮测试舵机旋转: 0° → 90° → 0°</p>
 <button type="button" class="btn" style="background:#4caf50" onclick="testServo()">▶ 测试舵机</button>
 <p id="servoResult" style="margin-top:10px;font-size:13px;color:#4caf50"></p>
@@ -145,7 +160,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 </div>
 <script>
 function togglePwd(btn,inputId){var input=document.getElementById(inputId||'pwd');if(input.type==='password'){input.type='text';btn.textContent='👁'}else{input.type='password';btn.textContent='👁‍🗨'}}
-function testServo(){var el=document.getElementById('servoResult');el.style.color='#888';el.textContent='测试中...';fetch('/servo/test',{method:'POST'}).then(function(r){return r.json()}).then(function(d){if(d.success){el.style.color='#4caf50';el.textContent='✓ 测试完成，舵机已旋转'}else{el.style.color='#e53935';el.textContent='✗ 测试失败: '+d.message}}).catch(function(){el.style.color='#e53935';el.textContent='✗ 请求失败'})}
+function testServo(){var el=document.getElementById('servoResult');var pin=document.getElementById('servoPinTest').value;el.style.color='#888';el.textContent='测试中...';fetch('/servo/test?pin='+pin,{method:'POST'}).then(function(r){return r.json()}).then(function(d){if(d.success){el.style.color='#4caf50';el.textContent='✓ 测试完成，舵机已旋转 (GPIO'+pin+')'}else{el.style.color='#e53935';el.textContent='✗ 测试失败: '+d.message}}).catch(function(){el.style.color='#e53935';el.textContent='✗ 请求失败'})}
 </script>
 </body>
 </html>
@@ -164,6 +179,7 @@ void HttpConfigService::handleSave()
     doc["mqttPort"] = _srv->arg("mqttPort").toInt();
     doc["mqttUsername"] = _srv->arg("mqttUser");
     doc["mqttPassword"] = _srv->arg("mqttPwd");
+    doc["servoPin"] = _srv->arg("servoPin").toInt();
 
     bool ok = ConfigStore::instance().save();
     if (ok)
@@ -202,6 +218,18 @@ void HttpConfigService::handleServoTest()
         return;
     }
 
-    app->getServoController().testOpen();
-    _srv->send(200, "application/json", "{\"success\":true,\"message\":\"Servo test completed\"}");
+    uint8_t pin = 2; // Default D4
+    if (_srv->hasArg("pin"))
+    {
+        pin = (uint8_t)_srv->arg("pin").toInt();
+        if (pin == 0 && _srv->arg("pin") != "0")
+        {
+            pin = 2; // Invalid input, use default
+        }
+    }
+
+    app->getServoController().testWithPin(pin);
+
+    String json = "{\"success\":true,\"message\":\"Servo test completed on GPIO" + String(pin) + "\"}";
+    _srv->send(200, "application/json", json);
 }

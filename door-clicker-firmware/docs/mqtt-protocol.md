@@ -40,7 +40,7 @@
 舵机参数（引脚、角度范围、初始角度）通过 `config.json` 持久化存储，设备启动时自动初始化，无需通过 MQTT 下发。
 
 config.json 中相关字段：
-- `servoPin`: GPIO 引脚号（默认 5）
+- `servoPin`: GPIO 引脚号（默认 2，即 D4）
 - `servoMinAngle`: 最小角度（默认 0）
 - `servoMaxAngle`: 最大角度（默认 180）
 - `servoInitialAngle`: 初始角度（默认 0）

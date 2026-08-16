@@ -90,3 +90,34 @@ void ServoController::testOpen()
   delay(500);
   Logger::info(kLogTagServo, "Test complete");
 }
+
+void ServoController::testWithPin(uint8_t pin)
+{
+  // Save current state
+  uint8_t originalPin = pin_;
+  int originalMin = minAngle_;
+  int originalMax = maxAngle_;
+  int originalAngle = currentAngle_;
+  bool wasInitialized = initialized_;
+
+  Logger::info(kLogTagServo, String("Test with pin=") + pin);
+
+  // Initialize with test pin
+  init(pin, 0, 180, originalAngle);
+
+  // Run test sequence
+  Logger::info(kLogTagServo, "Test: rotating to 90deg");
+  servo_.write(90);
+  delay(500);
+  Logger::info(kLogTagServo, "Test: rotating to 0deg");
+  servo_.write(0);
+  delay(500);
+  Logger::info(kLogTagServo, "Test complete");
+
+  // Restore original state
+  if (wasInitialized)
+  {
+    init(originalPin, originalMin, originalMax, originalAngle);
+    Logger::info(kLogTagServo, String("Restored to pin=") + originalPin);
+  }
+}

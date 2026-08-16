@@ -50,8 +50,8 @@ void ConfigStore::syncDocToStruct()
     _cfg.mqttPassword = s;
     Logger::info("CFG", "mqttPassword length", String(s ? strlen(s) : 0));
 
-    // servoPin
-    _cfg.servoPin = _doc["servoPin"] | 5;
+    // servoPin (D4 = GPIO2)
+    _cfg.servoPin = _doc["servoPin"] | 2;
     Logger::info("CFG", "servoPin", _cfg.servoPin);
 
     // servoMinAngle
