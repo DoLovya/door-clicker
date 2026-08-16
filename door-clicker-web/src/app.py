@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 
 from flask import Flask, jsonify, render_template, request
@@ -248,6 +249,7 @@ if __name__ == "__main__":
     log_manager.log_info(f"日志文件路径: {log_manager.get_log_file_path()}")
     log_manager.log_info("=" * 50)
     init_mqtt()
-    logger.info("Server running on http://0.0.0.0:8080")
-    log_manager.log_info("Web 服务已启动，监听端口 8080")
-    app.run(host="0.0.0.0", port=8080)
+    port = int(os.environ.get("PORT", "5000"))
+    logger.info(f"Server running on http://0.0.0.0:{port}")
+    log_manager.log_info(f"Web 服务已启动，监听端口 {port}")
+    app.run(host="0.0.0.0", port=port)
