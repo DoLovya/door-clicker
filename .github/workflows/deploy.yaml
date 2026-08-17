@@ -3,6 +3,11 @@ name: Deploy to Server
 on:
   push:
     branches: [main]
+    paths:
+      - 'door-clicker-web/**'
+      - 'deploy/**'
+      - '.github/workflows/deploy.yaml'
+      - 'door-clicker-web/requirements.txt'
   workflow_dispatch:
 
 jobs:

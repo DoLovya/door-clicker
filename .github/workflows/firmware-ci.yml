@@ -3,8 +3,13 @@ name: Firmware CI
 on:
   push:
     branches: [main]
+    paths:
+      - 'door-clicker-firmware/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'door-clicker-firmware/**'
+  workflow_dispatch:
 
 jobs:
   firmware-ci:
