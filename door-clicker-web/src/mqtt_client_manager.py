@@ -335,9 +335,13 @@ class MqttClientManager:
                 return {"success": False, "message": "Not connected to MQTT broker"}
             config = self._config_manager.get_config()
             topic = config.get("doorTopic", "door/00094E53")
+            open_angle = config.get("openAngle", 90)
+            open_duration = config.get("openDuration", 200)
+            close_angle = config.get("closeAngle", 0)
+            close_duration = config.get("closeDuration", 200)
             command_payload = json.dumps([
-                {"angle": 90, "duration": 200},
-                {"angle": 0, "duration": 200},
+                {"angle": open_angle, "duration": open_duration},
+                {"angle": close_angle, "duration": close_duration},
             ])
             self._log_manager.log_send(topic, command_payload)
             result = self._client.publish(topic, command_payload)

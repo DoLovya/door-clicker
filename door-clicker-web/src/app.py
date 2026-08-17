@@ -78,7 +78,11 @@ def api_open_door():
     result = mqtt_client_manager.publish_open_door()
     if result["success"]:
         log_manager.log_info("开门指令发送成功")
-        return jsonify([{"angle": 90, "duration": 200}, {"angle": 0, "duration": 200}])
+        config = config_manager.get_config()
+        return jsonify([
+            {"angle": config.get("openAngle", 90), "duration": config.get("openDuration", 200)},
+            {"angle": config.get("closeAngle", 0), "duration": config.get("closeDuration", 200)},
+        ])
     log_manager.log_error(f"开门指令发送失败: {result['message']}")
     return jsonify({"error": result["message"]}), 500
 
@@ -116,6 +120,22 @@ def api_update_config():
     if "topics" in data:
         if not isinstance(data["topics"], list):
             return jsonify({"error": "Topics must be an array"}), 400
+
+    for angle_field in ("openAngle", "closeAngle"):
+        if angle_field in data:
+            val = data[angle_field]
+            if not isinstance(val, int) or isinstance(val, bool):
+                return jsonify({"error": f"{angle_field} must be an integer"}), 400
+            if val < 0 or val > 180:
+                return jsonify({"error": f"{angle_field} must be between 0 and 180"}), 400
+
+    for duration_field in ("openDuration", "closeDuration"):
+        if duration_field in data:
+            val = data[duration_field]
+            if not isinstance(val, int) or isinstance(val, bool):
+                return jsonify({"error": f"{duration_field} must be an integer"}), 400
+            if val < 50 or val > 10000:
+                return jsonify({"error": f"{duration_field} must be between 50 and 10000"}), 400
 
     if "adminPassword" in data:
         import hashlib

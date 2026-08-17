@@ -69,6 +69,40 @@
             </div>
         </div>
 
+        <!-- 舵机角度配置 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">舵机角度配置</div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="openAngle">开门角度 (°)</label>
+                    <input type="number" id="openAngle" placeholder="90" min="0" max="180">
+                </div>
+                <div class="form-group">
+                    <label for="openDuration">开门延时 (ms)</label>
+                    <input type="number" id="openDuration" placeholder="200" min="100" max="5000">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="closeAngle">关门角度 (°)</label>
+                    <input type="number" id="closeAngle" placeholder="0" min="0" max="180">
+                </div>
+                <div class="form-group">
+                    <label for="closeDuration">关门延时 (ms)</label>
+                    <input type="number" id="closeDuration" placeholder="200" min="100" max="5000">
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnServoConfig">保存舵机配置</button>
+                <button class="btn btn-secondary" id="btnServoTest">测试舵机</button>
+            </div>
+        </div>
+
         <!-- 修改密码 -->
         <div class="card">
             <div class="card-header">
@@ -157,6 +191,10 @@
                     document.getElementById('username').value = config.mqttUsername || '';
                     document.getElementById('password').value = config.mqttPassword || '';
                     document.getElementById('doorTopic').value = config.doorTopic || '';
+                    document.getElementById('openAngle').value = config.openAngle !== undefined ? config.openAngle : 90;
+                    document.getElementById('openDuration').value = config.openDuration !== undefined ? config.openDuration : 200;
+                    document.getElementById('closeAngle').value = config.closeAngle !== undefined ? config.closeAngle : 0;
+                    document.getElementById('closeDuration').value = config.closeDuration !== undefined ? config.closeDuration : 200;
                 })
                 .catch(function () {
                     showToast('加载配置失败', 'error');
@@ -191,6 +229,62 @@
                 .finally(function () {
                     btn.disabled = false;
                     btn.textContent = '保存配置';
+                });
+        }
+
+        function saveServoConfig() {
+            var btn = document.getElementById('btnServoConfig');
+            btn.disabled = true;
+            btn.textContent = '保存中...';
+
+            var config = {
+                openAngle: parseInt(document.getElementById('openAngle').value) || 90,
+                openDuration: parseInt(document.getElementById('openDuration').value) || 200,
+                closeAngle: parseInt(document.getElementById('closeAngle').value) || 0,
+                closeDuration: parseInt(document.getElementById('closeDuration').value) || 200
+            };
+
+            fetch('/api/config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+                .then(function (res) { return res.json(); })
+                .then(function () {
+                    showToast('舵机配置保存成功', 'success');
+                })
+                .catch(function () {
+                    showToast('舵机配置保存失败', 'error');
+                })
+                .finally(function () {
+                    btn.disabled = false;
+                    btn.textContent = '保存舵机配置';
+                });
+        }
+
+        function testServo() {
+            var btn = document.getElementById('btnServoTest');
+            btn.disabled = true;
+            btn.textContent = '测试中...';
+
+            fetch('/api/open/door', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (data.error) {
+                        showToast('测试失败: ' + data.error, 'error');
+                    } else {
+                        showToast('舵机测试指令已发送', 'success');
+                    }
+                })
+                .catch(function () {
+                    showToast('测试指令发送失败', 'error');
+                })
+                .finally(function () {
+                    btn.disabled = false;
+                    btn.textContent = '测试舵机';
                 });
         }
 
@@ -379,6 +473,8 @@
 
         document.getElementById('btnSaveConfig').onclick = saveConfig;
         document.getElementById('btnTestConnection').onclick = testConnection;
+        document.getElementById('btnServoConfig').onclick = saveServoConfig;
+        document.getElementById('btnServoTest').onclick = testServo;
         document.getElementById('btnOpenDoor').onclick = openDoor;
         document.getElementById('btnRefreshLogs').onclick = loadLogs;
         document.getElementById('btnClearLogs').onclick = clearLogs;

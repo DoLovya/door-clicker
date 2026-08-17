@@ -17,6 +17,10 @@ class ConfigManager:
         "adminUser": "admin",
         "adminPasswordHash": "",
         "topics": [],
+        "openAngle": 90,
+        "openDuration": 200,
+        "closeAngle": 0,
+        "closeDuration": 200,
     }
 
     def __new__(cls):
