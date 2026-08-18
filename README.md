@@ -47,7 +47,7 @@ graph LR
     A -- "HTTP API" --> B
     B -- "MQTT" --> C
     C -- "MQTT" --> D
-    D -- "GPIO5 (D1)" --> E
+    D -- "GPIO2 (D4)" --> E
 
     style A fill:#e3f2fd
     style B fill:#e8f5e9
@@ -74,7 +74,7 @@ graph LR
 
 | ESP8266 引脚 | GPIO | 连接 |
 |-------------|------|------|
-| D1 | GPIO5 | 舵机信号线 |
+| D4 | GPIO2 | 舵机信号线 |
 | - | 3.3V | 舵机 VCC (或外部供电) |
 | G | GND | 舵机 GND |
 
