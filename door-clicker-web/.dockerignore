@@ -1,0 +1,35 @@
+# 构建与运行时无关的文件 — 不进入镜像
+
+# 虚拟环境
+venv/
+myenv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*.so
+
+# 数据、日志（通过 volume 挂载，不打包进镜像）
+data/*.log
+data/logs/
+logs/
+data/config.json
+
+# 单元测试（构建时不跑，留给 CI）
+tests/
+
+# 部署脚本（宿主机用的，不进镜像）
+deploy/
+
+# Git & IDE
+.git/
+.gitignore
+.trae/
+openspec/
+.idea/
+.vscode/
+.DS_Store
+
+# 文档
+README.md
+*.md

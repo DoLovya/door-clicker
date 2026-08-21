@@ -96,7 +96,7 @@ echo "  ✓ 系统依赖安装完成"
 # 3. 创建目录结构
 progress 3 $TOTAL_STEPS "创建目录结构"
 mkdir -p "$APP_DIR"
-mkdir -p "$APP_DIR/door-clicker-web"/{src,data,data/logs,tests,static/templates}
+mkdir -p "$APP_DIR/door-clicker-web"/{src,data,data/logs,tests,src/templates,src/static}
 echo "  ✓ 目录结构创建完成"
 
 # 4. 安装 MQTT Broker (Mosquitto)
@@ -110,7 +110,7 @@ progress 5 $TOTAL_STEPS "创建 Python 虚拟环境"
 cd "$APP_DIR/door-clicker-web"
 python3 -m venv venv
 source venv/bin/activate
-pip install --upgrade pip
+python -m pip install --upgrade pip
 echo "  ✓ Python 虚拟环境创建完成"
 
 # 6. 配置 systemd
@@ -139,7 +139,7 @@ Environment=PYTHONUNBUFFERED=1
 
 NoNewPrivileges=true
 ProtectSystem=strict
-ReadWritePaths=$APP_DIR/door-clicker-web/data $APP_DIR/door-clicker-web/logs
+ReadWritePaths=$APP_DIR/door-clicker-web/data $APP_DIR/door-clicker-web/data/logs
 
 [Install]
 WantedBy=multi-user.target
@@ -152,7 +152,7 @@ echo "  ✓ systemd 服务配置完成"
 # 7. 设置目录权限
 progress 7 $TOTAL_STEPS "设置目录权限"
 chown -R "$SERVER_USER:$SERVER_USER" "$APP_DIR"
-chmod 750 "$APP_DIR/door-clicker-web/data" "$APP_DIR/door-clicker-web/logs"
+chmod 750 "$APP_DIR/door-clicker-web/data" "$APP_DIR/door-clicker-web/data/logs"
 echo "  ✓ 目录权限设置完成"
 
 # 8. 配置 Nginx

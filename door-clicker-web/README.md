@@ -232,3 +232,97 @@ app.run(host="0.0.0.0", port=8080)  # 改为所需端口
 
 ### Q: 配置保存后需要重启吗？
 不需要。保存配置后系统会自动断开旧连接并使用新配置重连 MQTT。
+
+---
+
+## Docker 部署
+
+Door Clicker 提供完整的 Docker Compose 方案，支持**零环境依赖**一键启动（Web 面板 + Mosquitto MQTT Broker）。
+
+### 环境要求
+
+- Docker Engine ≥ 24
+- Docker Compose v2（`docker compose` CLI，Docker Desktop 默认已启用）
+
+### 三种运行模式对比
+
+| 模式 | Web 端运行位置 | MQTT Broker 位置 | 启动命令 | 热重载 | IDE 断点 | 适用场景 |
+|---|---|---|---|---|---|---|
+| **混合开发（推荐默认）** | 本地 venv `python app.py` | Docker Mosquitto | 见下方 | ✅ | ✅ | 日常写代码 + 调试 |
+| **全容器开发** | Docker web 容器（源码 bind mount）| Docker Mosquitto | `ENV=development docker compose up -d --build` | ✅（可能慢 1–3s）| 需 debugpy | 验证容器化行为、CI |
+| **生产部署** | Docker web 容器（镜像内打包源码）| Docker Mosquitto | `docker compose up -d --build` | ❌ | ❌ | 服务器正式部署 |
+
+### 快速开始（推荐：混合开发模式）
+
+```bash
+# 1. 只启动 MQTT Broker（后台常驻）
+cd /path/to/door-clicker
+docker compose up -d mosquitto
+
+# 2. 本地 venv 跑 Flask（保留你最习惯的断点 + 秒级 reload）
+cd door-clicker-web
+python3 -m venv venv && source venv/bin/activate
+python -m pip install -r requirements.txt
+cd src
+FLASK_ENV=development python app.py
+```
+
+浏览器访问 `http://localhost:5000`，MQTT 地址填 `127.0.0.1:1883`（默认匿名，开发模式零配置）。
+
+### 快速开始（一键全栈）
+
+```bash
+cd /path/to/door-clicker
+
+# 可选：自定义端口、模式
+cp .env.example .env
+#   编辑 .env，WEB_PORT / MQTT_PORT / ENV 按需改
+
+# 生产模式（默认）— gunicorn + eventlet
+docker compose up -d --build
+
+# 或者：开发模式 — Flask dev server + 源码 bind mount 热重载
+ENV=development docker compose up -d --build
+
+# 查看状态 / 日志
+docker compose ps
+docker compose logs -f web
+docker compose logs -f mosquitto
+
+# 完全停止（持久化数据不会丢）
+docker compose down
+```
+
+### 持久化目录一览
+
+| 宿主机路径 / volume | 用途 | 销毁容器是否保留 |
+|---|---|---|
+| `door-clicker-web/data/`（bind mount） | `config.json` + `logs/` | ✅ 保留 |
+| `mosquitto-data`（命名 volume） | Mosquitto 消息持久化 | ✅ 保留 |
+| `mosquitto-log`（命名 volume） | Mosquitto 运行日志 | ✅ 保留 |
+
+迁移现有配置：直接把旧的 `config.json` 拷到 `door-clicker-web/data/config.json`，JSON 格式完全兼容。
+
+### 调试模式（容器内 debugpy attach）
+
+1. 在 `docker-compose.yml` 里解开 `web` 服务 `5678:5678` 端口映射的注释。
+2. 启动：`DEBUGPY=1 ENV=development docker compose up -d --build`。容器会 `--wait-for-client` 暂停，等待 IDE 连接。
+3. VS Code 添加 launch.json 配置（type=python, request=attach, host=localhost, port=5678, pathMappings 映射 `/app/src` 到宿主机 `door-clicker-web/src`），按 F5 即可断点调试。
+
+### 从现有 systemd 部署迁移 / 回滚
+
+```bash
+# 迁移
+sudo systemctl stop door-clicker-web
+sudo cp /opt/door-clicker/door-clicker-web/data/config.json ./door-clicker-web/data/
+docker compose up -d --build
+
+# 回滚
+docker compose down
+sudo systemctl start door-clicker-web
+```
+
+### 生产安全加固必读
+
+- 编辑 `deploy/mosquitto/mosquitto.conf`：`allow_anonymous false`，取消 `password_file` 注释并用 `mosquitto_passwd -c` 生成用户。
+- 如需暴露到公网，建议前面加一层 Nginx/Caddy 做 HTTPS；`docker-compose.yml` 默认暴露 5000 和 1883，按需绑定内网 IP 而不是 `0.0.0.0`。

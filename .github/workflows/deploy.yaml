@@ -27,11 +27,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install flake8
-          pip install -r door-clicker-web/requirements.txt
+          python -m pip install flake8
+          python -m pip install -r door-clicker-web/requirements.txt
 
       - name: Run flake8 lint
-        run: flake8 door-clicker-web/src/
+        run: python -m flake8 door-clicker-web/src/
 
       - name: Run unit tests
         run: python -m unittest discover -s door-clicker-web/tests -p "*_test.py"
@@ -113,11 +113,14 @@ jobs:
             $PYTHON -m venv venv
             source venv/bin/activate
             
-            # 依赖
+            # 依赖（用 python -m pip，确保和当前 venv 的 python 配对）
             echo "[依赖] 安装..."
-            pip install --upgrade pip -i https://pypi.org/simple/ -q
-            pip install -r requirements.txt -i https://pypi.org/simple/
+            python -m pip install --upgrade pip -i https://pypi.org/simple/ -q
+            python -m pip install -r requirements.txt -i https://pypi.org/simple/
             echo "[依赖] 完成"
+            
+            # 验证 flask 确实装到了当前 python
+            echo "[验证] python=$(which python) flask=$(python -c 'import flask; print(flask.__file__)' 2>&1)"
             
             # 测试应用启动
             echo "[测试] 验证应用可以启动..."

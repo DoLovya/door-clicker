@@ -66,10 +66,10 @@ rm -rf venv
 $PYTHON -m venv venv
 source venv/bin/activate
 
-# 5. 安装依赖
+# 5. 安装依赖（永远用 python -m pip，确保和当前解释器配对）
 echo "[依赖] 安装..."
-pip install --upgrade pip -i https://pypi.org/simple/ -q
-pip install -r requirements.txt -i https://pypi.org/simple/
+python -m pip install --upgrade pip -i https://pypi.org/simple/ -q
+python -m pip install -r requirements.txt -i https://pypi.org/simple/
 
 # 6. 创建目录
 mkdir -p data/logs

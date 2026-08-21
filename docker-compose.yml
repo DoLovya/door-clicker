@@ -1,0 +1,95 @@
+# ============================================================
+# Door Clicker — Docker Compose 部署清单
+# 运行模式由 ENV 环境变量控制：
+#   ENV=production   生产模式（默认）：gunicorn + eventlet，mem_limit，restart
+#   ENV=development  开发模式：Flask dev server + 源码 bind mount（热重载）
+#
+# 常用命令：
+#   生产启动：      docker compose up -d
+#   仅 MQTT Broker：docker compose up -d mosquitto
+#   全容器开发：    ENV=development docker compose up -d --build
+#   看日志：        docker compose logs -f web
+# ============================================================
+
+name: door-clicker
+
+services:
+  # ----------------------------------------------------------
+  # MQTT Broker — Eclipse Mosquitto 2.x
+  # ----------------------------------------------------------
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: door-clicker-mosquitto
+    restart: unless-stopped
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+    volumes:
+      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      # 命名 volume — 消息持久化
+      - mosquitto-data:/mosquitto/data
+      # 命名 volume — 日志持久化
+      - mosquitto-log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/broker/uptime' -C 1 -W 3 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ----------------------------------------------------------
+  # Door Clicker Web — Flask 管理面板
+  # ----------------------------------------------------------
+  web:
+    build:
+      context: ./door-clicker-web
+      dockerfile: Dockerfile
+    image: door-clicker-web:local
+    container_name: door-clicker-web
+    restart: unless-stopped
+    mem_limit: 256m
+    memswap_limit: 256m
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-5000}:5000"
+      # debugpy 端口（仅 DEBUGPY=1 时有用；默认不暴露，可按需解开注释）
+      # - "5678:5678"
+    environment:
+      # 读取 compose 的 ENV 变量：production / development
+      - ENV=${ENV:-production}
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - PYTHONUNBUFFERED=1
+      - PORT=5000
+      # Flask dev server 监听所有网卡（开发模式用到）
+      - FLASK_RUN_HOST=0.0.0.0
+      - FLASK_RUN_PORT=5000
+    volumes:
+      # 配置、日志 — 始终 bind mount 到宿主机，容器销毁不丢
+      - ./door-clicker-web/data:/app/data
+      # ----------------------------------------------------------
+      # 开发模式：以 bind mount 覆盖容器内的 src 目录，热重载生效
+      # 生产模式：不挂载，使用镜像内打包的源码
+      # ----------------------------------------------------------
+      - ./door-clicker-web/src:/app/src:ro${DOCKER_SRC_RO_SUFFIX:-}
+    # 开发 / 生产切换 command
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ "$ENV" = "development" ]; then
+          echo "[door-clicker-web] dev mode: Flask dev server + hot reload"
+          if [ "${DEBUGPY:-0}" = "1" ]; then
+            pip install debugpy --quiet
+            exec python -m debugpy --listen 0.0.0.0:5678 --wait-for-client app.py
+          else
+            exec python app.py
+          fi
+        else
+          echo "[door-clicker-web] production mode: gunicorn + eventlet"
+          exec python -m gunicorn -k eventlet -w 1 -b 0.0.0.0:5000 \
+               --access-logfile - --error-logfile - app:app
+        fi
+
+volumes:
+  mosquitto-data:
+  mosquitto-log:
