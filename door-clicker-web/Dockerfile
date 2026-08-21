@@ -36,7 +36,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     APP_HOME=/app \
-    PORT=5000
+    PORT=5001
 
 # 运行时的轻量系统依赖（保留 ca-certificates 让 SSL 正常）
 RUN apt-get update \
@@ -57,7 +57,7 @@ WORKDIR $APP_HOME/src
 # 拷贝应用源码（最后一步，改代码不影响依赖层缓存）
 COPY --chown=app:app src/ ./
 
-EXPOSE 5000
+EXPOSE 5001
 
 VOLUME ["$APP_HOME/data"]
 
@@ -68,7 +68,7 @@ USER app
 CMD ["python", "-m", "gunicorn", \
      "-k", "eventlet", \
      "-w", "1", \
-     "-b", "0.0.0.0:5000", \
+     "-b", "0.0.0.0:5001", \
      "--access-logfile", "-", \
      "--error-logfile", "-", \
      "app:app"]

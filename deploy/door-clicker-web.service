@@ -14,7 +14,7 @@ StandardOutput=journal
 StandardError=journal
 Environment=FLASK_ENV=production
 Environment=PYTHONUNBUFFERED=1
-Environment=PORT=5000
+Environment=PORT=5001
 
 [Install]
 WantedBy=multi-user.target

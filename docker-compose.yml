@@ -52,7 +52,7 @@ services:
       mosquitto:
         condition: service_healthy
     ports:
-      - "${WEB_PORT:-5000}:5000"
+      - "${WEB_PORT:-5001}:5001"
       # debugpy 端口（仅 DEBUGPY=1 时有用；默认不暴露，可按需解开注释）
       # - "5678:5678"
     environment:
@@ -60,10 +60,10 @@ services:
       - ENV=${ENV:-production}
       - FLASK_ENV=${FLASK_ENV:-production}
       - PYTHONUNBUFFERED=1
-      - PORT=5000
+      - PORT=5001
       # Flask dev server 监听所有网卡（开发模式用到）
       - FLASK_RUN_HOST=0.0.0.0
-      - FLASK_RUN_PORT=5000
+      - FLASK_RUN_PORT=5001
     volumes:
       # 配置、日志 — 始终 bind mount 到宿主机，容器销毁不丢
       - ./door-clicker-web/data:/app/data
@@ -86,7 +86,7 @@ services:
           fi
         else
           echo "[door-clicker-web] production mode: gunicorn + eventlet"
-          exec python -m gunicorn -k eventlet -w 1 -b 0.0.0.0:5000 \
+          exec python -m gunicorn -k eventlet -w 1 -b 0.0.0.0:5001 \
                --access-logfile - --error-logfile - app:app
         fi
 

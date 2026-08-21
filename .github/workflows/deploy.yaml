@@ -202,4 +202,4 @@ jobs:
           script: |
             systemctl is-active --quiet door-clicker-web || exit 1
             echo "✓ 部署成功，服务运行正常"
-            curl -sf http://localhost:${{ secrets.APP_PORT || 5000 }}/ > /dev/null || echo "⚠ Web服务可能需要更多时间启动"
+            curl -sf http://localhost:${{ secrets.APP_PORT || 5001 }}/ > /dev/null || echo "⚠ Web服务可能需要更多时间启动"
